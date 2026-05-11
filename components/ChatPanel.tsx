@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { IconSend } from '@tabler/icons-react';
 import { Message } from '../types';
-import { sendMessage, streamMessage } from '../lib/api';
-import ReactMarkdown from 'react-markdown';
+import { sendMessage } from '../lib/api';
 
-export default function ChatPanel() {
+interface AIAnalystProps {}
+
+export default function AIAnalyst({}: AIAnalystProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,20 +31,22 @@ export default function ChatPanel() {
     setIsLoading(true);
 
     try {
-      // For streaming, we'll use the stream endpoint
-      let aiResponse = '';
-      const eventSource = streamMessage(input, messages, (chunk) => {
-        aiResponse += chunk;
-        setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
-      });
-
-      eventSource.addEventListener('end', () => {
-        eventSource.close();
-        setIsLoading(false);
-      });
+      const response = await sendMessage(input, messages);
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: response.response,
+        citations: response.citations,
+        tools_used: response.tools_used,
+      };
+      setMessages([...newMessages, aiMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      setMessages([...newMessages, errorMessage]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -54,83 +58,147 @@ export default function ChatPanel() {
     }
   };
 
-  return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-screen">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold">AI Analyst</h2>
-      </div>
+  const quickQuestions = [
+    'Analyze my portfolio risk',
+    'Show top movers today',
+    'Best performing stock?',
+    'Crypto outlook today?',
+    'Rebalance suggestions?',
+  ];
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
-            >
-              <ReactMarkdown className="text-sm">
-                {message.content}
-              </ReactMarkdown>
-              {message.citations && message.citations.length > 0 && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Citations: {message.citations.join(', ')}
-                </div>
-              )}
-              {message.tools_used && message.tools_used.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {message.tools_used.map((tool, toolIndex) => (
-                    <span
-                      key={toolIndex}
-                      className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs"
-                    >
-                      {tool}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 px-4 py-2 rounded-lg">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+  return (
+    <div className="flex-1 flex">
+      {/* Chat Section */}
+      <div className="flex-1 flex flex-col bg-white">
+        {/* Header */}
+        <div className="border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded bg-gray-900"></div>
+            <div>
+              <h2 className="text-base font-medium">JengaVest AI</h2>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs text-gray-500">Online</span>
               </div>
             </div>
           </div>
-        )}
-        <div ref={messagesEndRef} />
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          {messages.length === 0 && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-gray-500 text-sm">Start a conversation with your AI analyst</p>
+              </div>
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs rounded-lg px-4 py-2 ${
+                  message.role === 'user'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-900 border border-gray-200'
+                }`}
+              >
+                <p className="text-sm">{message.content}</p>
+                {message.citations && message.citations.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {message.citations.map((citation, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs"
+                      >
+                        {citation}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {message.tools_used && message.tools_used.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {message.tools_used.map((tool, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs"
+                      >
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.1s' }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.2s' }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-gray-200 p-4 bg-white">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about your portfolio..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              disabled={isLoading}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={isLoading || !input.trim()}
+              className="p-2 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--color-sidebar-bg)' }}
+            >
+              <IconSend size={18} />
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Press Enter to send</p>
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about your portfolio..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Send
-          </button>
+      {/* Right Panel */}
+      <div className="w-40 border-l border-gray-200 p-4 bg-gray-50 overflow-y-auto hidden lg:block">
+        <p className="text-xs font-medium text-gray-600 mb-3">Suggested questions</p>
+        <div className="space-y-2 mb-6">
+          {quickQuestions.map((question, idx) => (
+            <button
+              key={idx}
+              onClick={() => setInput(question)}
+              className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded hover:bg-gray-100 text-left transition-colors"
+            >
+              {question}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs font-medium text-gray-600 mb-3">Tools available</p>
+        <div className="space-y-2 text-xs text-gray-600">
+          <div>Live stock data</div>
+          <div>Web search</div>
+          <div>Document RAG</div>
+          <div>Google Drive MCP</div>
         </div>
       </div>
     </div>

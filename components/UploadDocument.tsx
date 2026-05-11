@@ -1,88 +1,50 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { uploadDocument } from '../lib/api';
+import React from 'react';
+import { IconSettings } from '@tabler/icons-react';
 
-export default function UploadDocument() {
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    await uploadFiles(files);
-  }, []);
-
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    await uploadFiles(files);
-  }, []);
-
-  const uploadFiles = async (files: File[]) => {
-    setIsUploading(true);
-    for (const file of files) {
-      if (file.type === 'application/pdf') {
-        try {
-          const response = await uploadDocument(file);
-          setUploadedFiles(prev => [...prev, file.name]);
-          console.log('Upload response:', response);
-        } catch (error) {
-          console.error('Upload failed:', error);
-        }
-      }
-    }
-    setIsUploading(false);
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  }, []);
-
+export default function Settings() {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
-      <h3 className="text-lg font-semibold mb-4">Upload Financial Documents</h3>
-
-      {/* Drop Zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-        onClick={() => document.getElementById('file-input')?.click()}
-      >
-        <div className="text-gray-600">
-          {isUploading ? (
-            <div>Uploading...</div>
-          ) : (
-            <>
-              <div className="text-lg mb-2">Drop PDF files here or click to browse</div>
-              <div className="text-sm">Only PDF documents are supported</div>
-            </>
-          )}
-        </div>
-        <input
-          id="file-input"
-          type="file"
-          multiple
-          accept=".pdf"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+    <div className="flex-1 flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white px-6 py-4">
+        <h1 className="text-xl font-medium">Settings</h1>
+        <p className="text-sm text-gray-500 mt-1">Manage your preferences</p>
       </div>
 
-      {/* Uploaded Files */}
-      {uploadedFiles.length > 0 && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Files:</h4>
-          <ul className="space-y-1">
-            {uploadedFiles.map((file, index) => (
-              <li key={index} className="text-sm text-gray-600 flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                {file}
-              </li>
-            ))}
-          </ul>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium text-gray-900 mb-4">Preferences</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded" />
+                    <span className="text-sm text-gray-700">Email notifications</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="rounded" />
+                    <span className="text-sm text-gray-700">Push notifications</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-sm text-gray-700">Dark mode</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="font-medium text-gray-900 mb-4">Data</h3>
+                <button className="text-sm text-red-600 hover:text-red-700">
+                  Clear chat history
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

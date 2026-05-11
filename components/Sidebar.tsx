@@ -1,54 +1,85 @@
 'use client';
 
-import { useState } from 'react';
-
-const navigationItems = [
-  'Dashboard',
-  'Market News',
-  'Portfolio',
-  'Documents',
-  'History',
-  'Settings',
-];
+import React from 'react';
+import {
+  IconLayoutDashboard,
+  IconRobot,
+  IconNews,
+  IconBriefcase,
+  IconFileText,
+  IconHistory,
+  IconSettings,
+} from '@tabler/icons-react';
 
 interface SidebarProps {
-  activeItem: string;
-  onItemClick: (item: string) => void;
+  activePage: string;
+  onNavigate: (page: string) => void;
 }
 
-export default function Sidebar({ activeItem, onItemClick }: SidebarProps) {
+export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
-    <div className="w-64 bg-gray-900 text-white h-screen flex flex-col">
+    <div className="w-50 bg-gray-900 text-white h-screen flex-col fixed left-0 top-0 max-md:hidden md:flex">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold">JengaVest</h1>
+      <div className="p-4 border-b border-gray-800">
+        <h1 className="text-base font-medium">JengaVest</h1>
+        <p className="text-xs text-gray-400 mt-1">AI Financial Analyst</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {navigationItems.map((item) => (
-            <li key={item}>
-              <button
-                onClick={() => onItemClick(item)}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                  activeItem === item
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`}
-              >
-                {item}
-              </button>
-            </li>
+      <nav className="flex-1 p-3 flex flex-col gap-1">
+        {/* Main section */}
+        <div>
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
+            { id: 'analyst', label: 'AI Analyst', icon: IconRobot },
+            { id: 'news', label: 'Market news', icon: IconNews },
+            { id: 'portfolio', label: 'Portfolio', icon: IconBriefcase },
+            { id: 'documents', label: 'Documents', icon: IconFileText },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => onNavigate(id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
+                activePage === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/50 hover:text-white/70'
+              }`}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
           ))}
-        </ul>
+        </div>
+
+        {/* Account section */}
+        <div className="mt-auto pt-4 border-t border-gray-800">
+          {[
+            { id: 'history', label: 'History', icon: IconHistory },
+            { id: 'settings', label: 'Settings', icon: IconSettings },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => onNavigate(id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
+                activePage === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/50 hover:text-white/70'
+              }`}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
       </nav>
 
-      {/* Portfolio Summary */}
+      {/* Bottom Footer */}
       <div className="p-4 border-t border-gray-800">
-        <div className="text-sm text-gray-400">Portfolio Value</div>
-        <div className="text-xl font-semibold">$1,234,567</div>
-        <div className="text-sm text-green-400">+2.34% today</div>
+        <p className="text-xs text-gray-400">Total portfolio</p>
+        <p className="text-lg font-medium text-white mt-1">$24,381</p>
+        <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-live)' }}>
+          +2.4% today
+        </p>
       </div>
     </div>
   );

@@ -1,93 +1,77 @@
-import { Holding } from '../types';
+'use client';
 
-const dummyHoldings: Holding[] = [
+import React from 'react';
+import { IconHistory } from '@tabler/icons-react';
+
+interface ConversationItem {
+  id: string;
+  title: string;
+  firstMessage: string;
+  date: string;
+}
+
+const dummyConversations: ConversationItem[] = [
   {
-    ticker: 'AAPL',
-    name: 'Apple Inc.',
-    quantity: 100,
-    current_price: 150.25,
-    price_change: 2.50,
-    price_change_percent: 1.69,
+    id: '1',
+    title: 'Portfolio risk analysis',
+    firstMessage: 'Analyze my portfolio risk exposure...',
+    date: '2024-01-15',
   },
   {
-    ticker: 'GOOGL',
-    name: 'Alphabet Inc.',
-    quantity: 50,
-    current_price: 2800.00,
-    price_change: -15.25,
-    price_change_percent: -0.54,
+    id: '2',
+    title: 'Stock recommendations for tech',
+    firstMessage: 'What are your recommendations for tech stocks?',
+    date: '2024-01-14',
   },
   {
-    ticker: 'MSFT',
-    name: 'Microsoft Corporation',
-    quantity: 75,
-    current_price: 305.80,
-    price_change: 5.20,
-    price_change_percent: 1.73,
+    id: '3',
+    title: 'Market outlook discussion',
+    firstMessage: 'What is your outlook on the market?',
+    date: '2024-01-13',
   },
   {
-    ticker: 'TSLA',
-    name: 'Tesla Inc.',
-    quantity: 25,
-    current_price: 220.50,
-    price_change: -8.75,
-    price_change_percent: -3.82,
+    id: '4',
+    title: 'Crypto investment strategy',
+    firstMessage: 'Should I invest more in cryptocurrency?',
+    date: '2024-01-12',
+  },
+  {
+    id: '5',
+    title: 'Portfolio rebalancing',
+    firstMessage: 'Time to rebalance my portfolio?',
+    date: '2024-01-11',
   },
 ];
 
-export default function HoldingsTable() {
+export default function History({ onNavigate }: { onNavigate: (page: string) => void }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
-      <div className="p-6 border-b">
-        <h3 className="text-lg font-semibold">Holdings</h3>
+    <div className="flex-1 flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white px-6 py-4">
+        <h1 className="text-xl font-medium">Conversation history</h1>
+        <p className="text-sm text-gray-500 mt-1">Review past conversations with the AI analyst</p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ticker
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Price
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Change
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Change %
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {dummyHoldings.map((holding) => (
-              <tr key={holding.ticker} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {holding.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {holding.ticker}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ${holding.current_price.toFixed(2)}
-                </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                  holding.price_change >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {holding.price_change >= 0 ? '+' : ''}${holding.price_change.toFixed(2)}
-                </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                  holding.price_change_percent >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {holding.price_change_percent >= 0 ? '+' : ''}{holding.price_change_percent.toFixed(2)}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto p-4 space-y-2">
+          {dummyConversations.map((conv) => (
+            <button
+              key={conv.id}
+              onClick={() => onNavigate('analyst')}
+              className="w-full bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow text-left"
+            >
+              <div className="flex items-start gap-3">
+                <IconHistory size={18} className="text-gray-400 shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-gray-900 truncate">{conv.title}</h3>
+                  <p className="text-sm text-gray-600 truncate mt-1">{conv.firstMessage}</p>
+                  <p className="text-xs text-gray-500 mt-2">{new Date(conv.date).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
