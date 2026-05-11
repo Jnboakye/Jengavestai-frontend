@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --color-sidebar-bg: #1a1f3a;
-  --color-main-bg: #0f172a;
-  --color-card-bg: #1e293b;
+  --color-sidebar-bg: #111827;
+  --color-main-bg: #111827;
+  --color-card-bg: #1f2937;
   --color-sidebar-text-active: #ffffff;
   --color-sidebar-text-inactive: rgba(255, 255, 255, 0.5);
   --color-sidebar-nav-active: rgba(255, 255, 255, 0.08);
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-live: #10b981;
-  --color-chart-default: #334155;
-  --color-chart-medium: #5dcaa5;
-  --color-chart-high: #10b981;
+  --color-success: #059669;
+  --color-danger: #dc2626;
+  --color-live: #34d399;
+  --color-chart-default: #374151;
+  --color-chart-medium: #5DCAA5;
+  --color-chart-high: #1D9E75;
   --color-text-primary: #ffffff;
   --color-text-secondary: rgba(255, 255, 255, 0.7);
-  --color-text-muted: rgba(255, 255, 255, 0.5);
-  --color-border: #334155;
-  --color-positive: #10b981;
-  --color-negative: #ef4444;
+  --color-text-muted: rgba(255, 255, 255, 0.45);
+  --color-border: #374151;
+  --color-positive: #059669;
+  --color-negative: #dc2626;
 }
 
 * {
@@ -37,16 +37,4 @@ body {
   color: var(--color-text-primary);
   height: 100vh;
   overflow: hidden;
-}
-
-@layer components {
-  .badge-positive {
-    @apply bg-green-900/30 text-green-400 px-2 py-1 rounded text-xs font-medium;
-  }
-  .badge-negative {
-    @apply bg-red-900/30 text-red-400 px-2 py-1 rounded text-xs font-medium;
-  }
-  .badge-watch {
-    @apply bg-amber-900/30 text-amber-400 px-2 py-1 rounded text-xs font-medium;
-  }
 }

@@ -15,38 +15,28 @@ type Page = 'dashboard' | 'analyst' | 'news' | 'portfolio' | 'documents' | 'hist
 
 export default function Home() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
+  const navigate = (page: string) => setActivePage(page as Page);
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard':
-        return <DashboardPage onNavigate={(page) => setActivePage(page as Page)} />;
-      case 'analyst':
-        return <AIAnalyst />;
-      case 'news':
-        return <MarketNews />;
-      case 'portfolio':
-        return <PortfolioPage />;
-      case 'documents':
-        return <Documents />;
-      case 'history':
-        return <History onNavigate={(page) => setActivePage(page as Page)} />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <DashboardPage onNavigate={(page) => setActivePage(page as Page)} />;
+      case 'dashboard':  return <DashboardPage onNavigate={navigate} />;
+      case 'analyst':    return <AIAnalyst />;
+      case 'news':       return <MarketNews />;
+      case 'portfolio':  return <PortfolioPage />;
+      case 'documents':  return <Documents />;
+      case 'history':    return <History onNavigate={navigate} />;
+      case 'settings':   return <Settings />;
+      default:           return <DashboardPage onNavigate={navigate} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - visible on md and above */}
-      <Sidebar activePage={activePage} onNavigate={(page) => setActivePage(page as Page)} />
-
-      {/* Main content */}
-      <main className="flex-1 md:ml-50 mb-16 md:mb-0">{renderPage()}</main>
-
-      {/* Bottom navigation - visible only on mobile */}
-      <BottomNav activePage={activePage} onNavigate={(page) => setActivePage(page as Page)} />
+    <div className="h-screen" style={{ backgroundColor: 'var(--color-main-bg)' }}>
+      <Sidebar activePage={activePage} onNavigate={navigate} />
+      {/* Block-level main — left margin = sidebar width. Fixed sidebars are out of flex flow,
+          so flex-1 would make main 100vw wide and the margin would overflow the viewport. */}
+      <main className="md:ml-[200px] mb-16 md:mb-0">{renderPage()}</main>
+      <BottomNav activePage={activePage} onNavigate={navigate} />
     </div>
   );
 }

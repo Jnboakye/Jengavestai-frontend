@@ -16,78 +16,112 @@ interface SidebarProps {
   onNavigate: (page: string) => void;
 }
 
+const mainNav = [
+  { id: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
+  { id: 'analyst', label: 'AI Analyst', icon: IconRobot },
+  { id: 'news', label: 'Market news', icon: IconNews },
+  { id: 'portfolio', label: 'Portfolio', icon: IconBriefcase },
+  { id: 'documents', label: 'Documents', icon: IconFileText },
+];
+
+const accountNav = [
+  { id: 'history', label: 'History', icon: IconHistory },
+  { id: 'settings', label: 'Settings', icon: IconSettings },
+];
+
+function NavItem({
+  label,
+  Icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  Icon: React.ComponentType<{ size: number }>;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm text-left transition-colors"
+      style={{
+        backgroundColor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+        color: active ? '#ffffff' : 'rgba(255,255,255,0.5)',
+      }}
+    >
+      <Icon size={16} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
-    <div className="w-50 text-white h-screen flex-col fixed left-0 top-0 max-md:hidden md:flex" style={{ backgroundColor: 'var(--color-sidebar-bg)' }}>
+    <div
+      className="w-[200px] h-screen flex flex-col fixed left-0 top-0 max-md:hidden"
+      style={{ backgroundColor: '#111827' }}
+    >
       {/* Logo */}
-      <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-        <h1 className="text-base font-medium">JengaVest</h1>
-        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>AI Financial Analyst</p>
+      <div className="px-4 py-5">
+        <h1 className="text-sm font-medium text-white">JengaVest</h1>
+        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          AI Financial Analyst
+        </p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 flex flex-col gap-1">
+      <nav className="flex-1 px-3 flex flex-col gap-4 overflow-y-auto">
         {/* Main section */}
         <div>
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
-            { id: 'analyst', label: 'AI Analyst', icon: IconRobot },
-            { id: 'news', label: 'Market news', icon: IconNews },
-            { id: 'portfolio', label: 'Portfolio', icon: IconBriefcase },
-            { id: 'documents', label: 'Documents', icon: IconFileText },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
-                activePage === id
-                  ? 'text-white'
-                  : ''
-              }`}
-              style={{
-                backgroundColor: activePage === id ? 'var(--color-sidebar-nav-active)' : 'transparent',
-                color: activePage === id ? 'var(--color-sidebar-text-active)' : 'var(--color-sidebar-text-inactive)',
-              }}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </button>
-          ))}
+          <p
+            className="px-3 mb-1 uppercase tracking-wider"
+            style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}
+          >
+            Main
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {mainNav.map(({ id, label, icon: Icon }) => (
+              <NavItem
+                key={id}
+                label={label}
+                Icon={Icon}
+                active={activePage === id}
+                onClick={() => onNavigate(id)}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Account section */}
-        <div className="mt-auto pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          {[
-            { id: 'history', label: 'History', icon: IconHistory },
-            { id: 'settings', label: 'Settings', icon: IconSettings },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
-                activePage === id
-                  ? 'text-white'
-                  : ''
-              }`}
-              style={{
-                backgroundColor: activePage === id ? 'var(--color-sidebar-nav-active)' : 'transparent',
-                color: activePage === id ? 'var(--color-sidebar-text-active)' : 'var(--color-sidebar-text-inactive)',
-              }}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </button>
-          ))}
+        <div>
+          <p
+            className="px-3 mb-1 uppercase tracking-wider"
+            style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}
+          >
+            Account
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {accountNav.map(({ id, label, icon: Icon }) => (
+              <NavItem
+                key={id}
+                label={label}
+                Icon={Icon}
+                active={activePage === id}
+                onClick={() => onNavigate(id)}
+              />
+            ))}
+          </div>
         </div>
       </nav>
 
-      {/* Bottom Footer */}
-      <div className="p-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Total portfolio</p>
-        <p className="text-lg font-medium mt-1">$24,381</p>
-        <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-live)' }}>
-          +2.4% today
-        </p>
+      {/* Portfolio footer */}
+      <div
+        className="px-4 py-4 border-t"
+        style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+      >
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Total portfolio</p>
+        <p className="text-lg font-medium text-white mt-1">$24,381</p>
+        <p className="text-xs font-medium mt-0.5" style={{ color: '#34d399' }}>+2.4% today</p>
       </div>
     </div>
   );

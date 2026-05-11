@@ -1,47 +1,60 @@
 'use client';
 
 import React from 'react';
-import { IconSettings } from '@tabler/icons-react';
 
 export default function Settings() {
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
+    <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--color-main-bg)' }}>
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-xl font-medium">Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your preferences</p>
+      <div
+        className="shrink-0 px-6 py-4 border-b"
+        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}
+      >
+        <h1 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Settings</h1>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Manage your preferences</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-4">Preferences</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span className="text-sm text-gray-700">Email notifications</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span className="text-sm text-gray-700">Push notifications</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm text-gray-700">Dark mode</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="font-medium text-gray-900 mb-4">Data</h3>
-                <button className="text-sm text-red-600 hover:text-red-700">
-                  Clear chat history
-                </button>
-              </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div
+          className="max-w-lg rounded-lg border p-6"
+          style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
+        >
+          {/* Notifications */}
+          <div className="mb-6">
+            <h3 className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: 'var(--color-text-muted)', letterSpacing: '0.05em' }}>
+              Notifications
+            </h3>
+            <div className="space-y-3">
+              {[
+                { label: 'Email notifications', defaultChecked: true },
+                { label: 'Push notifications', defaultChecked: true },
+                { label: 'Portfolio alerts', defaultChecked: false },
+              ].map(({ label, defaultChecked }) => (
+                <label key={label} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    defaultChecked={defaultChecked}
+                    className="rounded"
+                    style={{ accentColor: '#1D9E75' }}
+                  />
+                  <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
+                </label>
+              ))}
             </div>
+          </div>
+
+          {/* Data */}
+          <div className="border-t pt-6" style={{ borderColor: 'var(--color-border)' }}>
+            <h3 className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: 'var(--color-text-muted)', letterSpacing: '0.05em' }}>
+              Data
+            </h3>
+            <button
+              className="text-sm"
+              style={{ color: '#dc2626' }}
+            >
+              Clear chat history
+            </button>
           </div>
         </div>
       </div>
