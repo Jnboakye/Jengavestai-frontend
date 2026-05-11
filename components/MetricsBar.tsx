@@ -59,29 +59,44 @@ export default function MarketNews() {
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case 'Positive':
-        return 'badge-positive';
+        return '#10b98133';
       case 'Negative':
-        return 'badge-negative';
+        return '#ef444433';
       case 'Watch':
-        return 'badge-watch';
+        return '#f59e0b33';
       default:
-        return 'badge-watch';
+        return '#f59e0b33';
+    }
+  };
+
+  const getSentimentTextColor = (sentiment: string) => {
+    switch (sentiment) {
+      case 'Positive':
+        return '#10b981';
+      case 'Negative':
+        return '#ef4444';
+      case 'Watch':
+        return '#f59e0b';
+      default:
+        return '#f59e0b';
     }
   };
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--color-main-bg)' }}>
       <div className="p-4 grid grid-cols-2 gap-3">
         {dummyNews.map((news, idx) => (
-          <div key={idx} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-            <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">{news.title}</h3>
-            <p className="text-xs text-gray-600 mb-3 line-clamp-2">{news.description}</p>
+          <div key={idx} className="rounded-lg border p-4 hover:shadow-md transition-shadow" style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}>
+            <h3 className="text-sm font-medium mb-2 line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>{news.title}</h3>
+            <p className="text-xs mb-3 line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>{news.description}</p>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 <span>{news.source}</span>
                 <span>{new Date(news.date).toLocaleDateString()}</span>
               </div>
-              <span className={getSentimentColor(news.sentiment)}>{news.sentiment}</span>
+              <span className="px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: getSentimentColor(news.sentiment), color: getSentimentTextColor(news.sentiment) }}>
+                {news.sentiment}
+              </span>
             </div>
           </div>
         ))}

@@ -18,11 +18,11 @@ interface SidebarProps {
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
-    <div className="w-50 bg-gray-900 text-white h-screen flex-col fixed left-0 top-0 max-md:hidden md:flex">
+    <div className="w-50 text-white h-screen flex-col fixed left-0 top-0 max-md:hidden md:flex" style={{ backgroundColor: 'var(--color-sidebar-bg)' }}>
       {/* Logo */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
         <h1 className="text-base font-medium">JengaVest</h1>
-        <p className="text-xs text-gray-400 mt-1">AI Financial Analyst</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>AI Financial Analyst</p>
       </div>
 
       {/* Navigation */}
@@ -41,9 +41,13 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
               onClick={() => onNavigate(id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
                 activePage === id
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/50 hover:text-white/70'
+                  ? 'text-white'
+                  : ''
               }`}
+              style={{
+                backgroundColor: activePage === id ? 'var(--color-sidebar-nav-active)' : 'transparent',
+                color: activePage === id ? 'var(--color-sidebar-text-active)' : 'var(--color-sidebar-text-inactive)',
+              }}
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -52,7 +56,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
         </div>
 
         {/* Account section */}
-        <div className="mt-auto pt-4 border-t border-gray-800">
+        <div className="mt-auto pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
           {[
             { id: 'history', label: 'History', icon: IconHistory },
             { id: 'settings', label: 'Settings', icon: IconSettings },
@@ -62,9 +66,13 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
               onClick={() => onNavigate(id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
                 activePage === id
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/50 hover:text-white/70'
+                  ? 'text-white'
+                  : ''
               }`}
+              style={{
+                backgroundColor: activePage === id ? 'var(--color-sidebar-nav-active)' : 'transparent',
+                color: activePage === id ? 'var(--color-sidebar-text-active)' : 'var(--color-sidebar-text-inactive)',
+              }}
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -74,9 +82,9 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Bottom Footer */}
-      <div className="p-4 border-t border-gray-800">
-        <p className="text-xs text-gray-400">Total portfolio</p>
-        <p className="text-lg font-medium text-white mt-1">$24,381</p>
+      <div className="p-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Total portfolio</p>
+        <p className="text-lg font-medium mt-1">$24,381</p>
         <p className="text-xs font-medium mt-1" style={{ color: 'var(--color-live)' }}>
           +2.4% today
         </p>

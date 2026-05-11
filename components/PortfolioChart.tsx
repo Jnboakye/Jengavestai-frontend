@@ -47,51 +47,53 @@ export default function PortfolioPage() {
   ];
 
   const allocations = [
-    { name: 'Stocks', value: 40, color: '#1D9E75' },
+    { name: 'Stocks', value: 40, color: '#10b981' },
     { name: 'ETFs', value: 20, color: '#378ADD' },
     { name: 'Crypto', value: 14, color: '#EF9F27' },
-    { name: 'Bonds', value: 26, color: '#D3D1C7' },
+    { name: 'Bonds', value: 26, color: '#8B8680' },
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
+    <div className="flex-1 flex flex-col" style={{ backgroundColor: 'var(--color-main-bg)' }}>
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
+      <div className="border-b px-6 py-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}>
         <h1 className="text-xl font-medium">Portfolio</h1>
-        <p className="text-sm text-gray-500 mt-1">Complete list of your holdings</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>Complete list of your holdings</p>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {/* Holdings Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
+        <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}>
+          <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
             <h3 className="text-sm font-medium">All holdings</h3>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead style={{ backgroundColor: 'var(--color-main-bg)', borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Ticker</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Qty</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Price</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Value</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-600">Change</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Name</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Ticker</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Qty</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Price</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Value</th>
+                <th className="px-4 py-2 text-left font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Change</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {holdings.map((holding) => (
-                <tr key={holding.ticker} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 text-gray-900">{holding.name}</td>
-                  <td className="px-4 py-2 text-gray-600 font-medium">{holding.ticker}</td>
-                  <td className="px-4 py-2 text-gray-900">{holding.quantity}</td>
-                  <td className="px-4 py-2 text-gray-900 font-medium">{holding.price}</td>
-                  <td className="px-4 py-2 text-gray-900 font-medium">{holding.value}</td>
-                  <td className="px-4 py-2">
+                <tr key={holding.ticker} style={{ borderBottomColor: 'var(--color-border)', borderBottomWidth: '1px' }}>
+                  <td className="px-4 py-3" style={{ color: 'var(--color-text-primary)' }}>{holding.name}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--color-text-secondary)' }}>{holding.ticker}</td>
+                  <td className="px-4 py-3" style={{ color: 'var(--color-text-primary)' }}>{holding.quantity}</td>
+                  <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{holding.price}</td>
+                  <td className="px-4 py-3 font-medium" style={{ color: 'var(--color-text-primary)' }}>{holding.value}</td>
+                  <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        holding.change.startsWith('+') ? 'badge-positive' : 'badge-negative'
-                      }`}
+                      className="px-2 py-1 rounded text-xs font-medium"
+                      style={{
+                        backgroundColor: holding.change.startsWith('+') ? '#10b98133' : '#ef444433',
+                        color: holding.change.startsWith('+') ? '#10b981' : '#ef4444',
+                      }}
                     >
                       {holding.change}
                     </span>
@@ -103,7 +105,7 @@ export default function PortfolioPage() {
         </div>
 
         {/* Allocation Chart */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}>
           <h3 className="text-sm font-medium mb-4">Asset allocation</h3>
           <div className="flex gap-8">
             {/* Chart */}
@@ -145,13 +147,13 @@ export default function PortfolioPage() {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-col justify-center space-y-2">
+            <div className="flex flex-col justify-center space-y-3">
               {allocations.map(({ name, value, color }) => (
                 <div key={name} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{name}</p>
-                    <p className="text-xs text-gray-500">{value}%</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{name}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{value}%</p>
                   </div>
                 </div>
               ))}
