@@ -101,7 +101,7 @@ export default function AIAnalyst() {
               <div
                 className="max-w-sm rounded-lg px-4 py-2.5"
                 style={{
-                  backgroundColor: msg.role === 'user' ? '#111827' : 'var(--color-card-bg)',
+                  backgroundColor: msg.role === 'user' ? '#111827' : '#FFFFFF',
                   border: msg.role === 'user' ? 'none' : '1px solid var(--color-border)',
                 }}
               >
@@ -148,7 +148,7 @@ export default function AIAnalyst() {
                     <span
                       key={i}
                       className="w-1.5 h-1.5 rounded-full animate-bounce inline-block"
-                      style={{ backgroundColor: 'var(--color-text-muted)', animationDelay: `${delay}s` }}
+                      style={{ backgroundColor: '#6B7280', animationDelay: `${delay}s` }}
                     />
                   ))}
                 </div>

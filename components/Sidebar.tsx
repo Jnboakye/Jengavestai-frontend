@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import {
   IconLayoutDashboard,
   IconRobot,
@@ -29,99 +28,75 @@ const accountNav = [
   { id: 'settings', label: 'Settings', icon: IconSettings },
 ];
 
-function NavItem({
-  label,
-  Icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  Icon: React.ComponentType<{ size: number }>;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm text-left transition-colors"
-      style={{
-        backgroundColor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-        color: active ? '#ffffff' : 'rgba(255,255,255,0.5)',
-      }}
-    >
-      <Icon size={16} />
-      <span>{label}</span>
-    </button>
-  );
-}
-
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
-    <div
-      className="w-[200px] h-screen flex flex-col fixed left-0 top-0 max-md:hidden"
-      style={{ backgroundColor: '#111827' }}
-    >
+    <div className="flex fixed left-0 top-0 bottom-0 w-[200px] bg-[#111827] flex-col z-40">
+      
       {/* Logo */}
-      <div className="px-4 py-5">
-        <h1 className="text-sm font-medium text-white">JengaVest</h1>
-        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <div className="px-4 py-5 border-b border-white/[0.08]">
+        <h1 className="text-[15px] font-medium text-white tracking-tight">
+          JengaVest
+        </h1>
+        <p className="text-[11px] text-white/35 mt-0.5">
           AI Financial Analyst
         </p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 flex flex-col gap-4 overflow-y-auto">
+      <nav className="flex-1 px-2 py-3 flex flex-col gap-4 overflow-y-auto">
+        
         {/* Main section */}
         <div>
-          <p
-            className="px-3 mb-1 uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}
-          >
+          <p className="text-[10px] text-white/30 uppercase tracking-wider px-2 mb-1.5">
             Main
           </p>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-px">
             {mainNav.map(({ id, label, icon: Icon }) => (
-              <NavItem
+              <button
                 key={id}
-                label={label}
-                Icon={Icon}
-                active={activePage === id}
                 onClick={() => onNavigate(id)}
-              />
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12.5px] text-left transition-colors ${
+                  activePage === id
+                    ? 'bg-white/[0.08] text-white'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]'
+                }`}
+              >
+                <Icon size={15} />
+                <span>{label}</span>
+              </button>
             ))}
           </div>
         </div>
 
         {/* Account section */}
         <div>
-          <p
-            className="px-3 mb-1 uppercase tracking-wider"
-            style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}
-          >
+          <p className="text-[10px] text-white/30 uppercase tracking-wider px-2 mb-1.5">
             Account
           </p>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-px">
             {accountNav.map(({ id, label, icon: Icon }) => (
-              <NavItem
+              <button
                 key={id}
-                label={label}
-                Icon={Icon}
-                active={activePage === id}
                 onClick={() => onNavigate(id)}
-              />
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[12.5px] text-left transition-colors ${
+                  activePage === id
+                    ? 'bg-white/[0.08] text-white'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]'
+                }`}
+              >
+                <Icon size={15} />
+                <span>{label}</span>
+              </button>
             ))}
           </div>
         </div>
       </nav>
 
       {/* Portfolio footer */}
-      <div
-        className="px-4 py-4 border-t"
-        style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-      >
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Total portfolio</p>
-        <p className="text-lg font-medium text-white mt-1">$24,381</p>
-        <p className="text-xs font-medium mt-0.5" style={{ color: '#34d399' }}>+2.4% today</p>
+      <div className="px-4 py-4 border-t border-white/[0.08]">
+        <p className="text-[10px] text-white/35 mb-1">Total portfolio</p>
+        <p className="text-lg font-medium text-white mb-0.5">$24,381</p>
+        <p className="text-[11px] text-[#34d399]">+2.4% today</p>
       </div>
     </div>
   );
