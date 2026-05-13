@@ -1,231 +1,268 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { IconSend, IconRobot } from '@tabler/icons-react';
-import { Message } from '../types';
-import { sendMessage } from '../lib/api';
+import { useState, useRef, useEffect } from 'react';
+import {
+  IconRobot,
+  IconSend,
+  IconChartLine,
+  IconSearch,
+  IconFileText,
+  IconBrandGoogleDrive,
+} from '@tabler/icons-react';
 
-const quickQuestions = [
-  'Analyze my portfolio risk',
-  'Show top movers today',
-  'Best performing stock?',
-  'Crypto outlook today?',
-  'Rebalance suggestions?',
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  citations?: string[];
+  tools_used?: string[];
+}
+
+const suggestions = [
+  'How is my portfolio performing today?',
+  'What is the current price of Apple stock?',
+  'Should I rebalance my portfolio?',
+  'What is the latest news about Tesla?',
+  'What are the biggest risks in my portfolio?',
 ];
 
-const toolsList = [
-  'Live stock data',
-  'Web search',
-  'Document RAG search',
-  'Google Drive MCP',
+const tools = [
+  { label: 'Live stock data', icon: IconChartLine },
+  { label: 'Web search', icon: IconSearch },
+  { label: 'Document RAG search', icon: IconFileText },
+  { label: 'Google Drive MCP', icon: IconBrandGoogleDrive },
 ];
 
-export default function AIAnalyst() {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatPanel() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: 'Hello Jeffrey! I am your JengaVest AI analyst. I can help you analyze your portfolio, fetch live market data, search your uploaded financial documents and provide cited investment insights. What would you like to know?',
+    },
+  ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationHistory = useRef<{ role: string; content: string }[]>([]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
 
-    const userMsg: Message = { role: 'user', content: input };
-    const history = [...messages, userMsg];
-    setMessages(history);
+    const userMessage: Message = { role: 'user', content: text };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setLoading(true);
+
+    conversationHistory.current.push({ role: 'user', content: text });
 
     try {
-      const res = await sendMessage(input, messages);
-      setMessages([...history, {
-        role: 'assistant',
-        content: res.response,
-        citations: res.citations,
-        tools_used: res.tools_used,
-      }]);
-    } catch {
-      setMessages([...history, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/chat`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            conversation_history: conversationHistory.current.slice(0, -1),
+          }),
+        }
+      );
 
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.response,
+        citations: data.citations || [],
+        tools_used: data.tools_used || [],
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      conversationHistory.current.push({
+        role: 'assistant',
+        content: data.response,
+      });
+
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry — I could not connect to the backend. Make sure the FastAPI server is running at localhost:8000.',
+      }]);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-main-bg)' }}>
-      {/* Chat column */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <div
-          className="shrink-0 px-6 py-4 border-b"
-          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#111827' }}>
-              <IconRobot size={18} color="white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>JengaVest AI</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: '#34d399' }} />
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Online</span>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Topbar */}
+      <div className="px-6 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] font-medium text-gray-900">AI Analyst</h1>
+          <p className="text-[11px] text-gray-500 mt-0.5">
+            Ask anything about your portfolio or the market
+          </p>
         </div>
-
-        {/* Messages */}
-        <div
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-          style={{ backgroundColor: 'var(--color-main-bg)' }}
-        >
-          {messages.length === 0 && (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                Start a conversation with your AI analyst
-              </p>
-            </div>
-          )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className="max-w-sm rounded-lg px-4 py-2.5"
-                style={{
-                  backgroundColor: msg.role === 'user' ? '#111827' : '#FFFFFF',
-                  border: msg.role === 'user' ? 'none' : '1px solid var(--color-border)',
-                }}
-              >
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
-                  {msg.content}
-                </p>
-                {msg.citations && msg.citations.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {msg.citations.map((c, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded text-xs font-medium"
-                        style={{ backgroundColor: '#F0FDF4', color: '#059669' }}
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {msg.tools_used && msg.tools_used.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {msg.tools_used.map((t, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded text-xs"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div
-                className="rounded-lg px-4 py-3 border"
-                style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
-              >
-                <div className="flex gap-1">
-                  {[0, 0.15, 0.3].map((delay, i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full animate-bounce inline-block"
-                      style={{ backgroundColor: '#6B7280', animationDelay: `${delay}s` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div
-          className="shrink-0 border-t p-4"
-          style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}
-        >
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKey}
-              placeholder="Ask about your portfolio..."
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 rounded-lg text-sm focus:outline-none border"
-              style={{
-                backgroundColor: 'var(--color-main-bg)',
-                color: 'var(--color-text-primary)',
-                borderColor: 'var(--color-border)',
-              }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={isLoading || !input.trim()}
-              className="p-2 rounded-lg text-white disabled:opacity-40"
-              style={{ backgroundColor: '#111827' }}
-            >
-              <IconSend size={18} />
-            </button>
-          </div>
-          <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>Press Enter to send</p>
-        </div>
+        <button className="bg-[#111827] text-white text-[11px] px-3 py-1.5 rounded-md">
+          Clear chat
+        </button>
       </div>
 
-      {/* Right panel */}
-      <div
-        className="w-40 shrink-0 border-l p-4 overflow-y-auto hidden lg:flex flex-col gap-5"
-        style={{ backgroundColor: 'var(--color-main-bg)', borderColor: 'var(--color-border)' }}
-      >
-        <div>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Suggested questions
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {quickQuestions.map((q, i) => (
-              <button
+      {/* Body */}
+      <div className="p-4 flex gap-4" style={{ height: 'calc(100vh - 57px)' }}>
+
+        {/* Chat main */}
+        <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden">
+
+          {/* Chat header */}
+          <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#111827] rounded-lg flex items-center justify-center shrink-0">
+              <IconRobot size={16} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[12px] font-medium text-gray-900">JengaVest AI</p>
+              <p className="text-[10px] text-gray-500">Powered by Claude — Extended thinking enabled</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-green-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+              Online
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {messages.map((msg, i) => (
+              <div
                 key={i}
-                onClick={() => setInput(q)}
-                className="w-full px-2.5 py-2 text-xs rounded border text-left hover:opacity-80 transition-opacity"
-                style={{
-                  backgroundColor: 'var(--color-card-bg)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-text-secondary)',
-                }}
+                className={`flex gap-2 items-start ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
               >
-                {q}
-              </button>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-medium ${
+                  msg.role === 'assistant'
+                    ? 'bg-[#111827] text-white'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {msg.role === 'assistant'
+                    ? <IconRobot size={12} />
+                    : 'JA'
+                  }
+                </div>
+                <div className={`max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                  <div className={`px-3 py-2 rounded-xl text-[12px] leading-relaxed ${
+                    msg.role === 'assistant'
+                      ? 'bg-gray-50 text-gray-900 border border-gray-200 rounded-tl-sm'
+                      : 'bg-[#111827] text-white rounded-tr-sm'
+                  }`}>
+                    {msg.content}
+                  </div>
+
+                  {/* Citations */}
+                  {msg.citations && msg.citations.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {[...new Set(msg.citations)].map((citation, j) => (
+                        <span
+                          key={j}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-green-50 text-green-600"
+                        >
+                          {citation}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tools used */}
+                  {msg.tools_used && msg.tools_used.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {msg.tools_used.map((tool, j) => (
+                        <span
+                          key={j}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200"
+                        >
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
+
+            {/* Thinking indicator */}
+            {loading && (
+              <div className="flex gap-2 items-start">
+                <div className="w-6 h-6 rounded-full bg-[#111827] flex items-center justify-center shrink-0">
+                  <IconRobot size={12} className="text-white" />
+                </div>
+                <div className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 rounded-tl-sm flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span className="text-[10px] text-gray-400">Thinking...</span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="p-3 border-t border-gray-200">
+            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
+                placeholder="Ask about your portfolio, a stock, or the market..."
+                className="flex-1 text-[12px] bg-transparent border-none outline-none text-gray-900 placeholder-gray-400"
+              />
+              <button
+                onClick={() => sendMessage(input)}
+                disabled={loading || !input.trim()}
+                className="w-7 h-7 bg-[#111827] rounded-md flex items-center justify-center shrink-0 disabled:opacity-40"
+              >
+                <IconSend size={13} className="text-white" />
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 text-center mt-2">
+              JengaVest AI uses live market data, RAG search and web search
+            </p>
           </div>
         </div>
 
-        <div>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-            Tools available
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {toolsList.map((t) => (
-              <p key={t} className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{t}</p>
-            ))}
+        {/* Right panel */}
+        <div className="w-[180px] shrink-0 flex flex-col gap-4">
+
+          {/* Suggested questions */}
+          <div>
+            <p className="text-[10px] text-gray-500 mb-2 px-1">Suggested questions</p>
+            <div className="flex flex-col gap-1.5">
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(s)}
+                  className="text-left text-[11px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 hover:border-gray-300 transition-colors leading-snug"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tools available */}
+          <div>
+            <p className="text-[10px] text-gray-500 mb-2 px-1">Tools available</p>
+            <div className="flex flex-col gap-2">
+              {tools.map(({ label, icon: Icon }, i) => (
+                <div key={i} className="flex items-center gap-2 text-[10px] text-gray-500">
+                  <Icon size={13} className="text-gray-400 shrink-0" />
+                  {label}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
