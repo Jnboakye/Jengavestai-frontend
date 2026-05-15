@@ -30,7 +30,7 @@ const accountNav = [
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
-    <div className="flex fixed left-0 top-0 bottom-0 w-[200px] bg-[#111827] flex-col z-40">
+    <div className="hidden md:flex fixed left-0 top-0 bottom-0 w-[200px] bg-[#111827] flex-col z-40">
       
       {/* Logo */}
       <div className="px-4 py-5 border-b border-white/[0.08]">

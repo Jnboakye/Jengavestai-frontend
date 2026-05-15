@@ -8,6 +8,7 @@ import {
   IconCloudUpload,
   IconRobot,
   IconPlus,
+  IconBell,
 } from '@tabler/icons-react';
 import {
   BarChart,
@@ -100,42 +101,65 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div className="min-h-screen bg-gray-50">
 
       {/* Topbar */}
-      <div className="px-6 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
-        <div>
-          <h1 className="text-[13px] font-medium text-gray-900">
-            Good evening, Jeffrey
-          </h1>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            Here is your portfolio overview
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-gray-200 text-[11px] text-gray-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>
-            Live
+      <div className="px-4 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
+
+        {/* Mobile topbar */}
+        <div className="flex items-center justify-between w-full md:hidden">
+          <div>
+            <h1 className="text-[15px] font-medium text-gray-900">JengaVest</h1>
+            <p className="text-[11px] text-gray-500">Good evening, Jeffrey</p>
           </div>
-          <button
-            onClick={() => onNavigate('documents')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[11px] text-gray-500 hover:bg-gray-50 transition-colors"
-          >
-            <IconCloudUpload size={13} />
-            Upload PDF
-          </button>
-          <button
-            onClick={() => onNavigate('analyst')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#111827] text-white text-[11px] hover:bg-gray-800 transition-colors"
-          >
-            <IconRobot size={13} />
-            Ask AI
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center">
+              <IconBell size={16} className="text-gray-500" />
+            </button>
+            <button
+              onClick={() => onNavigate('analyst')}
+              className="w-8 h-8 rounded-lg bg-[#111827] flex items-center justify-center">
+              <IconRobot size={16} className="text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop topbar */}
+        <div className="hidden md:flex items-center justify-between w-full">
+          <div>
+            <h1 className="text-[13px] font-medium text-gray-900">Good evening, Jeffrey</h1>
+            <p className="text-[11px] text-gray-500 mt-0.5">Here is your portfolio overview</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-gray-200 text-[11px] text-gray-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>
+              Live
+            </div>
+            <button
+              onClick={() => onNavigate('documents')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[11px] text-gray-500">
+              <IconCloudUpload size={13} />
+              Upload PDF
+            </button>
+            <button
+              onClick={() => onNavigate('analyst')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#111827] text-white text-[11px]">
+              <IconRobot size={13} />
+              Ask AI
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Scrollable content */}
       <div className="p-4 flex flex-col gap-3">
 
+        {/* Mobile portfolio card */}
+        <div className="md:hidden bg-[#111827] mx-4 mt-4 rounded-xl p-4">
+          <p className="text-[10px] text-white/40 mb-1">Total portfolio</p>
+          <p className="text-2xl font-medium text-white">$24,381</p>
+          <p className="text-[11px] text-[#34d399] mt-1">+$571 today (+2.4%)</p>
+        </div>
+
         {/* Metric cards */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {metrics.map(({ label, value, sub, subColor, icon: Icon }) => (
             <div
               key={label}
@@ -154,7 +178,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Charts row */}
-        <div className="grid gap-3" style={{ gridTemplateColumns: '3fr 2fr' }}>
+        <div className="grid grid-cols-1 gap-3 md:[grid-template-columns:3fr_2fr]">
 
           {/* Portfolio performance */}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -187,7 +211,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
 
           {/* Allocation */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="hidden md:block bg-white border border-gray-200 rounded-xl p-4">
             <h3 className="text-[12px] font-medium text-gray-900 mb-4">
               Allocation
             </h3>
@@ -230,7 +254,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Holdings and news row */}
-        <div className="grid gap-3 pb-4" style={{ gridTemplateColumns: '3fr 2fr' }}>
+        <div className="grid grid-cols-1 gap-3 pb-4 md:[grid-template-columns:3fr_2fr]">
 
           {/* Holdings table */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -244,14 +268,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {['Name', 'Ticker', 'Price', 'Change'].map(col => (
-                    <th
-                      key={col}
-                      className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal"
-                    >
-                      {col}
-                    </th>
-                  ))}
+                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Name</th>
+                  <th className="hidden md:table-cell px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Ticker</th>
+                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Price</th>
+                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Change</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,7 +281,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     className={i < holdings.length - 1 ? 'border-b border-gray-200' : ''}
                   >
                     <td className="px-4 py-3 text-[12px] text-gray-900">{h.name}</td>
-                    <td className="px-4 py-3 text-[12px] text-gray-500">{h.ticker}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-[12px] text-gray-500">{h.ticker}</td>
                     <td className="px-4 py-3 text-[12px] text-gray-900">{h.price}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${

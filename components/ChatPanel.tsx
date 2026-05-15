@@ -112,7 +112,7 @@ export default function ChatPanel() {
       </div>
 
       {/* Body */}
-      <div className="p-4 flex gap-4" style={{ height: 'calc(100vh - 57px)' }}>
+      <div className="flex gap-4 flex-1 overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
 
         {/* Chat main */}
         <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden">
@@ -130,6 +130,19 @@ export default function ChatPanel() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
               Online
             </div>
+          </div>
+
+          {/* Mobile suggestion chips */}
+          <div className="md:hidden flex gap-2 overflow-x-auto px-3 py-2 border-b border-gray-200">
+            {['My portfolio today','Apple stock price',
+              'Should I rebalance?','Tesla news',
+              'My biggest risks'].map((chip, i) => (
+              <button key={i}
+                onClick={() => sendMessage(chip)}
+                className="whitespace-nowrap text-[11px] px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 shrink-0">
+                {chip}
+              </button>
+            ))}
           </div>
 
           {/* Messages */}
@@ -234,7 +247,7 @@ export default function ChatPanel() {
         </div>
 
         {/* Right panel */}
-        <div className="w-[180px] shrink-0 flex flex-col gap-4">
+        <div className="hidden md:flex w-[180px] shrink-0 flex-col gap-4">
 
           {/* Suggested questions */}
           <div>
