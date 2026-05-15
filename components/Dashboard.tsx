@@ -98,7 +98,7 @@ const sentimentBadge = (s: string) => {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
 
       {/* Topbar */}
       <div className="px-4 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
@@ -149,30 +149,32 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Scrollable content */}
-      <div className="p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-4">
 
         {/* Mobile portfolio card */}
-        <div className="md:hidden bg-[#111827] mx-4 mt-4 rounded-xl p-4">
-          <p className="text-[10px] text-white/40 mb-1">Total portfolio</p>
-          <p className="text-2xl font-medium text-white">$24,381</p>
-          <p className="text-[11px] text-[#34d399] mt-1">+$571 today (+2.4%)</p>
+        <div className="md:hidden bg-[#111827] mx-4 mt-4 rounded-xl p-6">
+          <p className="text-[11px] text-white/40 mb-1">Total portfolio</p>
+          <p className="text-3xl font-medium text-white">$24,381</p>
+          <p className="text-[13px] text-[#34d399] mt-1">+$571 today (+2.4%)</p>
         </div>
 
         {/* Metric cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {metrics.map(({ label, value, sub, subColor, icon: Icon }) => (
+          {metrics.map(({ label, value, sub, subColor, icon: Icon }, index) => (
             <div
               key={label}
-              className="bg-white border border-gray-200 rounded-xl p-4"
+              className={`bg-white border border-gray-200 rounded-xl p-5 md:p-4 ${
+                index < 2 ? 'hidden md:block' : ''
+              }`}
             >
               <div className="flex items-center gap-1.5 mb-3">
                 <Icon size={12} className="text-gray-400" />
-                <p className="text-[10px] text-gray-500">{label}</p>
+                <p className="text-[11px] text-gray-500">{label}</p>
               </div>
-              <p className="text-[20px] font-medium text-gray-900 tracking-tight">
+              <p className="text-[22px] font-medium text-gray-900 tracking-tight">
                 {value}
               </p>
-              <p className={`text-[11px] mt-1.5 ${subColor}`}>{sub}</p>
+              <p className={`text-[12px] mt-1.5 ${subColor}`}>{sub}</p>
             </div>
           ))}
         </div>
@@ -188,7 +190,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </h3>
               <span className="text-[10px] text-gray-400">YTD</span>
             </div>
-            <ResponsiveContainer width="100%" height={120}>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart
                 data={barData}
                 margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
@@ -280,10 +282,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     key={h.ticker}
                     className={i < holdings.length - 1 ? 'border-b border-gray-200' : ''}
                   >
-                    <td className="px-4 py-3 text-[12px] text-gray-900">{h.name}</td>
-                    <td className="hidden md:table-cell px-4 py-3 text-[12px] text-gray-500">{h.ticker}</td>
-                    <td className="px-4 py-3 text-[12px] text-gray-900">{h.price}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-4 text-[12px] text-gray-900">{h.name}</td>
+                    <td className="hidden md:table-cell px-4 py-4 text-[12px] text-gray-500">{h.ticker}</td>
+                    <td className="px-4 py-4 text-[12px] text-gray-900">{h.price}</td>
+                    <td className="px-4 py-4">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
                         h.up ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                       }`}>
@@ -311,10 +313,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               {news.map((item, i) => (
                 <div
                   key={i}
-                  className={`px-4 py-3 ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}
+                  className={`px-4 py-4 ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}
                 >
                   <div className="flex items-start gap-2 mb-1">
-                    <p className="text-[11px] text-gray-900 leading-snug flex-1">
+                    <p className="text-[12px] text-gray-900 leading-snug flex-1">
                       {item.title}
                     </p>
                     <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded font-medium ${sentimentBadge(item.sentiment)}`}>
