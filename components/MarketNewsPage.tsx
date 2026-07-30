@@ -1,116 +1,83 @@
 'use client';
 
-import React from 'react';
+import { NewsItem, Sentiment } from '@/types';
 
-interface NewsCard {
-  title: string;
-  description: string;
-  source: string;
-  date: string;
-  sentiment: 'Positive' | 'Negative' | 'Watch';
-}
-
-const dummyNews: NewsCard[] = [
+const news: NewsItem[] = [
   {
-    title: 'Fed signals potential rate cuts in Q4',
-    description: 'Federal Reserve officials hint at possible interest rate reductions later this year.',
-    source: 'Bloomberg',
-    date: '2026-05-11',
-    sentiment: 'Positive',
-  },
-  {
-    title: 'Tech stocks rally on AI optimism',
-    description: 'Major technology companies surge on strong artificial intelligence growth prospects.',
+    title: 'S&P 500 hits 3-month high on strong tech earnings',
     source: 'Reuters',
-    date: '2026-05-11',
+    date: 'May 8 2026',
+    time: '2h ago',
     sentiment: 'Positive',
+    description: 'Major indices surged as tech giants reported stronger than expected quarterly earnings.',
   },
   {
-    title: 'Oil prices surge amid geopolitical tensions',
-    description: 'Crude oil markets respond to escalating international conflicts in the Middle East.',
-    source: 'CNBC',
-    date: '2026-05-10',
-    sentiment: 'Negative',
-  },
-  {
-    title: 'Cryptocurrency market recovery gains momentum',
-    description: 'Digital assets show signs of stabilization after recent extended downturn.',
-    source: 'CoinDesk',
-    date: '2026-05-10',
+    title: 'Fed signals rates to remain elevated through mid-2026',
+    source: 'Bloomberg',
+    date: 'May 8 2026',
+    time: '4h ago',
     sentiment: 'Watch',
+    description: 'Federal Reserve officials indicated rates would remain at current levels longer than anticipated.',
   },
   {
-    title: 'Manufacturing sector shows unexpected growth',
-    description: 'Industrial production rises above economist expectations for Q2.',
-    source: 'WSJ',
-    date: '2026-05-09',
-    sentiment: 'Positive',
-  },
-  {
-    title: 'Consumer spending slows in April',
-    description: 'Retail sales disappoint forecast estimates as households tighten budgets.',
+    title: 'Apple beats Q3 earnings — revenue up 8% year over year',
     source: 'Financial Times',
-    date: '2026-05-09',
+    date: 'May 8 2026',
+    time: '6h ago',
+    sentiment: 'Positive',
+    description: 'Apple reported record services revenue and strong iPhone sales in emerging markets.',
+  },
+  {
+    title: 'Oil prices surge amid geopolitical tensions in Middle East',
+    source: 'CNBC',
+    date: 'May 8 2026',
+    time: '8h ago',
     sentiment: 'Negative',
+    description: 'Crude oil prices jumped over 3% as escalating tensions raised supply disruption concerns.',
   },
 ];
 
-function sentimentStyle(s: string) {
-  if (s === 'Positive') return { bg: '#F0FDF4', text: '#059669' };
-  if (s === 'Negative') return { bg: '#FEF2F2', text: '#dc2626' };
-  return { bg: '#FFFBEB', text: '#b45309' };
-}
+const badge = (s: Sentiment) => {
+  if (s === 'Positive') return 'bg-green-50 text-green-600';
+  if (s === 'Negative') return 'bg-red-50 text-red-600';
+  return 'bg-yellow-50 text-yellow-700';
+};
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-export default function MarketNews() {
+export default function MarketNewsPage() {
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--color-main-bg)' }}>
-      {/* Header */}
-      <div
-        className="shrink-0 px-6 py-4 border-b"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}
-      >
-        <h1 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Market news</h1>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Latest financial headlines</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Topbar */}
+      <div className="px-6 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] font-medium text-gray-900">Market news</h1>
+          <p className="text-[11px] text-gray-500 mt-0.5">Sample financial headlines (demo data)</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block"></span>
+          Demo
+        </div>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-3">
-          {dummyNews.map((news, i) => {
-            const ss = sentimentStyle(news.sentiment);
-            return (
-              <div
-                key={i}
-                className="rounded-lg border p-4"
-                style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-xs font-medium leading-snug" style={{ color: 'var(--color-text-primary)' }}>
-                    {news.title}
-                  </h3>
-                  <span
-                    className="shrink-0 px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{ backgroundColor: ss.bg, color: ss.text }}
-                  >
-                    {news.sentiment}
-                  </span>
-                </div>
-                <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                  {news.description}
-                </p>
-                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  <span>{news.source}</span>
-                  <span>·</span>
-                  <span>{formatDate(news.date)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* News grid */}
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        {news.map((item, i) => (
+          <div key={i} className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <h3 className="text-[13px] font-medium text-gray-900 leading-snug flex-1">
+                {item.title}
+              </h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-medium shrink-0 ${badge(item.sentiment)}`}>
+                {item.sentiment}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
+              {item.description}
+            </p>
+            <p className="text-[10px] text-gray-400">
+              {item.source} · {item.date} · {item.time}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

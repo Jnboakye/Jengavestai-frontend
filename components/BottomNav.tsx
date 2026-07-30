@@ -2,9 +2,9 @@
 
 import {
   IconLayoutDashboard,
-  IconRobot,
-  IconNews,
+  IconSearch,
   IconBriefcase,
+  IconRobot,
 } from '@tabler/icons-react';
 
 interface BottomNavProps {
@@ -14,9 +14,9 @@ interface BottomNavProps {
 
 const items = [
   { id: 'dashboard', label: 'Home', icon: IconLayoutDashboard },
-  { id: 'analyst', label: 'AI Analyst', icon: IconRobot },
-  { id: 'news', label: 'News', icon: IconNews },
+  { id: 'markets', label: 'Markets', icon: IconSearch },
   { id: 'portfolio', label: 'Portfolio', icon: IconBriefcase },
+  { id: 'analyst', label: 'AI Analyst', icon: IconRobot },
 ];
 
 export default function BottomNav({ activePage, onNavigate }: BottomNavProps) {
@@ -31,9 +31,7 @@ export default function BottomNav({ activePage, onNavigate }: BottomNavProps) {
           }`}
         >
           <Icon size={22} />
-          <span className={`text-[9px] ${activePage === id ? 'font-medium' : ''}`}>
-            {label}
-          </span>
+          <span className={`text-[9px] ${activePage === id ? 'font-medium' : ''}`}>{label}</span>
         </button>
       ))}
     </div>

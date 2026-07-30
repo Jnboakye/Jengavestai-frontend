@@ -1,132 +1,104 @@
 'use client';
 
-import React from 'react';
-import { PieChart, Pie, Cell } from 'recharts';
+import { IconTrash, IconSearch } from '@tabler/icons-react';
+import { usePortfolio, fmtUsd, fmtUsd2 } from '@/lib/portfolio';
 
-const holdings = [
-  { name: 'Apple Inc.', ticker: 'AAPL', qty: 50, price: '$189.42', value: '$9,471', change: '+1.8%', up: true },
-  { name: 'Microsoft Corporation', ticker: 'MSFT', qty: 30, price: '$412.10', value: '$12,363', change: '+2.1%', up: true },
-  { name: 'S&P 500 ETF', ticker: 'SPY', qty: 25, price: '$521.30', value: '$13,033', change: '+1.2%', up: true },
-  { name: 'Bitcoin', ticker: 'BTC', qty: 0.5, price: '$67,204', value: '$33,602', change: '-0.8%', up: false },
-  { name: 'Ethereum', ticker: 'ETH', qty: 5, price: '$2,450', value: '$12,250', change: '-1.2%', up: false },
-];
+export default function PortfolioPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+  const { holdings, totals, removeHolding } = usePortfolio();
+  const gainSign = totals.dayGainUsd >= 0 ? '+' : '';
+  const gainColor = totals.dayGainUsd >= 0 ? 'text-green-600' : 'text-red-600';
 
-const allocationData = [
-  { name: 'Stocks', value: 40, color: '#1D9E75' },
-  { name: 'ETFs', value: 20, color: '#378ADD' },
-  { name: 'Crypto', value: 14, color: '#EF9F27' },
-  { name: 'Bonds', value: 26, color: '#D3D1C7' },
-];
-
-function changeStyle(up: boolean) {
-  return up ? { bg: '#F0FDF4', text: '#059669' } : { bg: '#FEF2F2', text: '#dc2626' };
-}
-
-export default function PortfolioPage() {
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--color-main-bg)' }}>
-      {/* Header */}
-      <div
-        className="shrink-0 px-6 py-4 border-b"
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card-bg)' }}
-      >
-        <h1 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Portfolio</h1>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Complete list of your holdings</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Topbar */}
+      <div className="px-6 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h1 className="text-[13px] font-medium text-gray-900">Portfolio</h1>
+          <p className="text-[11px] text-gray-500 mt-0.5">Your holdings and performance</p>
+        </div>
+        <button
+          onClick={() => onNavigate('markets')}
+          className="bg-[#111827] text-white text-[11px] px-3 py-1.5 rounded-md"
+        >
+          Add holding
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {/* Holdings table */}
-        <div
-          className="rounded-lg border overflow-hidden"
-          style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
-        >
-          <div
-            className="px-4 py-3 border-b"
-            style={{ borderColor: 'var(--color-border)' }}
-          >
-            <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>All holdings</h3>
+      {holdings.length === 0 ? (
+        <div className="p-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-10 flex flex-col items-center text-center">
+            <h2 className="text-[14px] font-semibold text-gray-900 mb-1">No holdings yet</h2>
+            <p className="text-[12px] text-gray-500 mb-5">Add stocks from the Markets page to start building your portfolio.</p>
+            <button
+              onClick={() => onNavigate('markets')}
+              className="flex items-center gap-1.5 bg-[#111827] text-white text-[12px] rounded-lg px-4 py-2.5 hover:bg-black"
+            >
+              <IconSearch size={14} /> Browse markets
+            </button>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                {['Name', 'Ticker', 'Qty', 'Price', 'Value', 'Change'].map((col) => (
-                  <th
-                    key={col}
-                    className="px-4 py-2 text-left text-xs font-medium"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {holdings.map((h, i) => {
-                const cs = changeStyle(h.up);
-                return (
-                  <tr
-                    key={h.ticker}
-                    style={{ borderBottom: i < holdings.length - 1 ? '1px solid var(--color-border)' : 'none' }}
-                  >
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-primary)' }}>{h.name}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>{h.ticker}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-primary)' }}>{h.qty}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-primary)' }}>{h.price}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-primary)' }}>{h.value}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="px-2 py-0.5 rounded text-xs font-medium"
-                        style={{ backgroundColor: cs.bg, color: cs.text }}
-                      >
-                        {h.change}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
+      ) : (
+        <div className="p-4 flex flex-col gap-3">
+          {/* Summary bar */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-[11px] text-gray-500 mb-1">Total value</p>
+              <p className="text-[18px] font-medium text-gray-900">{fmtUsd(totals.value)}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-[11px] text-gray-500 mb-1">Invested</p>
+              <p className="text-[18px] font-medium text-gray-900">{fmtUsd(totals.invested)}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-[11px] text-gray-500 mb-1">Day gain</p>
+              <p className={`text-[18px] font-medium ${gainColor}`}>{gainSign}{fmtUsd(totals.dayGainUsd)}</p>
+            </div>
+          </div>
 
-        {/* Allocation donut */}
-        <div
-          className="rounded-lg border p-4"
-          style={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border)' }}
-        >
-          <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--color-text-primary)' }}>Asset allocation</h3>
-          <div className="flex items-center gap-8">
-            <PieChart width={150} height={150}>
-              <Pie
-                data={allocationData}
-                cx={75}
-                cy={75}
-                innerRadius={42}
-                outerRadius={68}
-                dataKey="value"
-                startAngle={90}
-                endAngle={-270}
-                strokeWidth={0}
-              >
-                {allocationData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-            </PieChart>
-            <div className="flex flex-col gap-3">
-              {allocationData.map(({ name, value, color }) => (
-                <div key={name} className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                  <div>
-                    <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{name}</p>
-                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{value}%</p>
-                  </div>
-                </div>
-              ))}
+          {/* Holdings table */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[560px]">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {['Name', 'Price', 'Shares', 'Invested', 'Value', 'Change', ''].map((col) => (
+                      <th key={col} className="px-4 py-2.5 text-left text-[10px] text-gray-500 font-normal">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdings.map((h, i) => (
+                    <tr key={h.ticker} className={i < holdings.length - 1 ? 'border-b border-gray-200' : ''}>
+                      <td className="px-4 py-3 text-[12px] text-gray-900">
+                        <span className="font-medium">{h.ticker}</span>
+                        <span className="text-gray-400"> · {h.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[12px] text-gray-900">{fmtUsd2(h.price)}</td>
+                      <td className="px-4 py-3 text-[12px] text-gray-500">{h.shares.toFixed(4)}</td>
+                      <td className="px-4 py-3 text-[12px] text-gray-500">{fmtUsd(h.amountUsd)}</td>
+                      <td className="px-4 py-3 text-[12px] text-gray-900">{fmtUsd2(h.currentValue)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${h.change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                          {h.change >= 0 ? '+' : ''}{h.change.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => removeHolding(h.ticker)}
+                          className="text-gray-300 hover:text-red-500 transition-colors"
+                          aria-label={`Remove ${h.ticker}`}
+                        >
+                          <IconTrash size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

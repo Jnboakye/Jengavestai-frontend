@@ -1,93 +1,28 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   IconWallet,
   IconTrendingUp,
-  IconChartBar,
-  IconShield,
-  IconCloudUpload,
+  IconCoin,
+  IconChartPie,
   IconRobot,
   IconPlus,
-  IconBell,
+  IconSearch,
 } from '@tabler/icons-react';
-import {
-  BarChart,
-  Bar,
-  Cell,
-  XAxis,
-  PieChart,
-  Pie,
-  ResponsiveContainer,
-} from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
+import { usePortfolio, fmtUsd, fmtUsd2 } from '@/lib/portfolio';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
 }
 
-const barData = [
-  { label: 'Jan', value: 30, color: '#D1D5DB' },
-  { label: '', value: 38, color: '#D1D5DB' },
-  { label: 'Mar', value: 35, color: '#D1D5DB' },
-  { label: '', value: 52, color: '#D1D5DB' },
-  { label: 'May', value: 45, color: '#5DCAA5' },
-  { label: '', value: 60, color: '#5DCAA5' },
-  { label: 'Jul', value: 55, color: '#1D9E75' },
-  { label: '', value: 68, color: '#1D9E75' },
-  { label: 'Sep', value: 62, color: '#1D9E75' },
-  { label: '', value: 74, color: '#1D9E75' },
-  { label: 'Nov', value: 70, color: '#1D9E75' },
-  { label: 'Now', value: 88, color: '#1D9E75' },
-];
-
-const allocationData = [
-  { name: 'Stocks', value: 40, color: '#1D9E75' },
-  { name: 'ETFs', value: 20, color: '#378ADD' },
-  { name: 'Crypto', value: 14, color: '#EF9F27' },
-  { name: 'Bonds', value: 26, color: '#D3D1C7' },
-];
-
-const holdings = [
-  { name: 'Apple Inc.', ticker: 'AAPL', price: '$189.42', change: '+1.8%', up: true },
-  { name: 'Microsoft', ticker: 'MSFT', price: '$412.10', change: '+2.1%', up: true },
-  { name: 'S&P 500 ETF', ticker: 'SPY', price: '$521.30', change: '+1.2%', up: true },
-  { name: 'Bitcoin', ticker: 'BTC', price: '$67,204', change: '-0.8%', up: false },
-];
+const SECTOR_COLORS = ['#1D9E75', '#378ADD', '#EF9F27', '#D3D1C7', '#9B7EDE', '#E06C9F', '#54B4C4'];
 
 const news = [
   { title: 'S&P 500 hits 3-month high on tech earnings', source: 'Reuters', time: '2h ago', sentiment: 'Positive' },
   { title: 'Fed signals rates elevated through mid-2026', source: 'Bloomberg', time: '4h ago', sentiment: 'Watch' },
   { title: 'Apple beats Q3 — revenue up 8% YoY', source: 'FT', time: '6h ago', sentiment: 'Positive' },
-];
-
-const metrics = [
-  {
-    label: 'Portfolio value',
-    value: '$24,381',
-    sub: '+$571 today',
-    subColor: 'text-green-600',
-    icon: IconWallet,
-  },
-  {
-    label: 'Day gain',
-    value: '+$571',
-    sub: 'Best day this week',
-    subColor: 'text-green-600',
-    icon: IconTrendingUp,
-  },
-  {
-    label: 'S&P 500',
-    value: '5,842',
-    sub: '+1.2% today',
-    subColor: 'text-green-600',
-    icon: IconChartBar,
-  },
-  {
-    label: 'Risk score',
-    value: 'Moderate',
-    sub: 'Based on holdings',
-    subColor: 'text-gray-500',
-    icon: IconShield,
-  },
 ];
 
 const sentimentBadge = (s: string) => {
@@ -97,240 +32,189 @@ const sentimentBadge = (s: string) => {
 };
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { holdings, totals } = usePortfolio();
+
+  const allocation = useMemo(() => {
+    const bySector = new Map<string, number>();
+    holdings.forEach((h) => bySector.set(h.sector, (bySector.get(h.sector) ?? 0) + h.currentValue));
+    const total = [...bySector.values()].reduce((s, v) => s + v, 0) || 1;
+    return [...bySector.entries()]
+      .map(([name, value], i) => ({
+        name,
+        value: Math.round((value / total) * 100),
+        color: SECTOR_COLORS[i % SECTOR_COLORS.length],
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [holdings]);
+
+  const gainColor = totals.dayGainUsd >= 0 ? 'text-green-600' : 'text-red-600';
+  const gainSign = totals.dayGainUsd >= 0 ? '+' : '';
+
+  const metrics = [
+    { label: 'Portfolio value', value: fmtUsd(totals.value), sub: `${gainSign}${fmtUsd(totals.dayGainUsd)} today`, subColor: gainColor, icon: IconWallet },
+    { label: 'Day gain', value: `${gainSign}${fmtUsd(totals.dayGainUsd)}`, sub: `${gainSign}${totals.dayGainPct.toFixed(2)}%`, subColor: gainColor, icon: IconTrendingUp },
+    { label: 'Total invested', value: fmtUsd(totals.invested), sub: 'Cost basis', subColor: 'text-gray-500', icon: IconCoin },
+    { label: 'Holdings', value: String(holdings.length), sub: `${allocation.length} sectors`, subColor: 'text-gray-500', icon: IconChartPie },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-
       {/* Topbar */}
       <div className="px-4 py-3.5 bg-white border-b border-gray-200 flex items-center justify-between">
-
-        {/* Mobile topbar */}
-        <div className="flex items-center justify-between w-full md:hidden">
-          <div>
-            <h1 className="text-[15px] font-medium text-gray-900">JengaVest</h1>
-            <p className="text-[11px] text-gray-500">Good evening, Jeffrey</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center">
-              <IconBell size={16} className="text-gray-500" />
-            </button>
-            <button
-              onClick={() => onNavigate('analyst')}
-              className="w-8 h-8 rounded-lg bg-[#111827] flex items-center justify-center">
-              <IconRobot size={16} className="text-white" />
-            </button>
-          </div>
+        <div>
+          <h1 className="text-[13px] md:text-[13px] font-medium text-gray-900">Good evening, Jeffrey</h1>
+          <p className="text-[11px] text-gray-500 mt-0.5">Here is your portfolio overview</p>
         </div>
-
-        {/* Desktop topbar */}
-        <div className="hidden md:flex items-center justify-between w-full">
-          <div>
-            <h1 className="text-[13px] font-medium text-gray-900">Good evening, Jeffrey</h1>
-            <p className="text-[11px] text-gray-500 mt-0.5">Here is your portfolio overview</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-gray-200 text-[11px] text-gray-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>
-              Live
-            </div>
-            <button
-              onClick={() => onNavigate('documents')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[11px] text-gray-500">
-              <IconCloudUpload size={13} />
-              Upload PDF
-            </button>
-            <button
-              onClick={() => onNavigate('analyst')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#111827] text-white text-[11px]">
-              <IconRobot size={13} />
-              Ask AI
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onNavigate('markets')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 text-[11px] text-gray-600 hover:bg-gray-50"
+          >
+            <IconPlus size={13} />
+            Add stock
+          </button>
+          <button
+            onClick={() => onNavigate('analyst')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#111827] text-white text-[11px]"
+          >
+            <IconRobot size={13} />
+            Ask AI
+          </button>
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="p-4 flex flex-col gap-4">
-
-        {/* Mobile portfolio card */}
-        <div className="md:hidden bg-[#111827] mx-4 mt-4 rounded-xl p-6">
-          <p className="text-[11px] text-white/40 mb-1">Total portfolio</p>
-          <p className="text-3xl font-medium text-white">$24,381</p>
-          <p className="text-[13px] text-[#34d399] mt-1">+$571 today (+2.4%)</p>
-        </div>
-
-        {/* Metric cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {metrics.map(({ label, value, sub, subColor, icon: Icon }, index) => (
-            <div
-              key={label}
-              className={`bg-white border border-gray-200 rounded-xl p-5 md:p-4 ${
-                index < 2 ? 'hidden md:block' : ''
-              }`}
-            >
-              <div className="flex items-center gap-1.5 mb-3">
-                <Icon size={12} className="text-gray-400" />
-                <p className="text-[11px] text-gray-500">{label}</p>
-              </div>
-              <p className="text-[22px] font-medium text-gray-900 tracking-tight">
-                {value}
-              </p>
-              <p className={`text-[12px] mt-1.5 ${subColor}`}>{sub}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Charts row */}
-        <div className="grid grid-cols-1 gap-3 md:[grid-template-columns:3fr_2fr]">
-
-          {/* Portfolio performance */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[12px] font-medium text-gray-900">
-                Portfolio performance
-              </h3>
-              <span className="text-[10px] text-gray-400">YTD</span>
-            </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart
-                data={barData}
-                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
-                barCategoryGap="25%"
-              >
-                <XAxis
-                  dataKey="label"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 9, fill: '#9CA3AF' }}
-                  interval={0}
-                />
-                <Bar dataKey="value" radius={[3, 3, 0, 0]}>
-                  {barData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {holdings.length === 0 ? (
+        <EmptyState onNavigate={onNavigate} />
+      ) : (
+        <div className="p-4 flex flex-col gap-4">
+          {/* Mobile portfolio card */}
+          <div className="md:hidden bg-[#111827] rounded-xl p-6">
+            <p className="text-[11px] text-white/40 mb-1">Total portfolio</p>
+            <p className="text-3xl font-medium text-white">{fmtUsd(totals.value)}</p>
+            <p className={`text-[13px] mt-1 ${totals.dayGainUsd >= 0 ? 'text-[#34d399]' : 'text-red-400'}`}>
+              {gainSign}{fmtUsd(totals.dayGainUsd)} today ({gainSign}{totals.dayGainPct.toFixed(2)}%)
+            </p>
           </div>
 
-          {/* Allocation */}
-          <div className="hidden md:block bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-[12px] font-medium text-gray-900 mb-4">
-              Allocation
-            </h3>
-            <div className="flex items-center gap-3">
-              <PieChart width={90} height={90}>
-                <Pie
-                  data={allocationData}
-                  cx={45}
-                  cy={45}
-                  innerRadius={26}
-                  outerRadius={42}
-                  dataKey="value"
-                  startAngle={90}
-                  endAngle={-270}
-                  strokeWidth={0}
-                >
-                  {allocationData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-              <div className="flex flex-col gap-2 flex-1">
-                {allocationData.map(({ name, value, color }) => (
-                  <div key={name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="text-[11px] text-gray-500">{name}</span>
+          {/* Metric cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {metrics.map(({ label, value, sub, subColor, icon: Icon }) => (
+              <div key={label} className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Icon size={12} className="text-gray-400" />
+                  <p className="text-[11px] text-gray-500">{label}</p>
+                </div>
+                <p className="text-[22px] font-medium text-gray-900 tracking-tight">{value}</p>
+                <p className={`text-[12px] mt-1.5 ${subColor}`}>{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Allocation + Holdings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Allocation */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <h3 className="text-[12px] font-medium text-gray-900 mb-4">Allocation by sector</h3>
+              <div className="flex items-center gap-3">
+                <PieChart width={110} height={110}>
+                  <Pie data={allocation} cx={55} cy={55} innerRadius={32} outerRadius={52} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0}>
+                    {allocation.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+                <div className="flex flex-col gap-2 flex-1">
+                  {allocation.map(({ name, value, color }) => (
+                    <div key={name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="text-[11px] text-gray-500">{name}</span>
+                      </div>
+                      <span className="text-[11px] font-medium text-gray-900">{value}%</span>
                     </div>
-                    <span className="text-[11px] font-medium text-gray-900">
-                      {value}%
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Holdings and news row */}
-        <div className="grid grid-cols-1 gap-3 pb-4 md:[grid-template-columns:3fr_2fr]">
-
-          {/* Holdings table */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200">
-              <h3 className="text-[12px] font-medium text-gray-900">Holdings</h3>
-              <button className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600">
-                <IconPlus size={12} />
-                Add
-              </button>
-            </div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Name</th>
-                  <th className="hidden md:table-cell px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Ticker</th>
-                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Price</th>
-                  <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.map((h, i) => (
-                  <tr
-                    key={h.ticker}
-                    className={i < holdings.length - 1 ? 'border-b border-gray-200' : ''}
-                  >
-                    <td className="px-4 py-4 text-[12px] text-gray-900">{h.name}</td>
-                    <td className="hidden md:table-cell px-4 py-4 text-[12px] text-gray-500">{h.ticker}</td>
-                    <td className="px-4 py-4 text-[12px] text-gray-900">{h.price}</td>
-                    <td className="px-4 py-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                        h.up ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                      }`}>
-                        {h.change}
-                      </span>
-                    </td>
+            {/* Holdings */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                <h3 className="text-[12px] font-medium text-gray-900">Holdings</h3>
+                <button onClick={() => onNavigate('markets')} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600">
+                  <IconPlus size={12} /> Add
+                </button>
+              </div>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Name</th>
+                    <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Value</th>
+                    <th className="px-4 py-2 text-left text-[10px] text-gray-500 font-normal">Change</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {holdings.map((h, i) => (
+                    <tr key={h.ticker} className={i < holdings.length - 1 ? 'border-b border-gray-200' : ''}>
+                      <td className="px-4 py-3 text-[12px] text-gray-900">
+                        {h.ticker}
+                        <span className="text-gray-400 hidden md:inline"> · {h.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[12px] text-gray-900">{fmtUsd2(h.currentValue)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${h.change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                          {h.change >= 0 ? '+' : ''}{h.change.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Market news */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200">
               <h3 className="text-[12px] font-medium text-gray-900">Market news</h3>
-              <button
-                onClick={() => onNavigate('news')}
-                className="text-[11px] text-gray-400 hover:text-gray-600"
-              >
-                View all
-              </button>
+              <button onClick={() => onNavigate('news')} className="text-[11px] text-gray-400 hover:text-gray-600">View all</button>
             </div>
             <div>
               {news.map((item, i) => (
-                <div
-                  key={i}
-                  className={`px-4 py-4 ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}
-                >
+                <div key={i} className={`px-4 py-4 ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}>
                   <div className="flex items-start gap-2 mb-1">
-                    <p className="text-[12px] text-gray-900 leading-snug flex-1">
-                      {item.title}
-                    </p>
-                    <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded font-medium ${sentimentBadge(item.sentiment)}`}>
-                      {item.sentiment}
-                    </span>
+                    <p className="text-[12px] text-gray-900 leading-snug flex-1">{item.title}</p>
+                    <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded font-medium ${sentimentBadge(item.sentiment)}`}>{item.sentiment}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400">
-                    {item.source} · {item.time}
-                  </p>
+                  <p className="text-[10px] text-gray-400">{item.source} · {item.time}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ onNavigate }: { onNavigate: (page: string) => void }) {
+  return (
+    <div className="p-4">
+      <div className="bg-white border border-gray-200 rounded-2xl p-10 flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
+          <IconChartPie size={22} className="text-gray-400" />
+        </div>
+        <h2 className="text-[15px] font-semibold text-gray-900 mb-1">Your portfolio is empty</h2>
+        <p className="text-[12px] text-gray-500 max-w-xs mb-5">
+          Search for stocks, check their details, and add how much you invested. Your total will build up here.
+        </p>
+        <button
+          onClick={() => onNavigate('markets')}
+          className="flex items-center gap-1.5 bg-[#111827] text-white text-[12px] rounded-lg px-4 py-2.5 hover:bg-black transition-colors"
+        >
+          <IconSearch size={14} />
+          Browse markets
+        </button>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   IconCheck,
   IconX,
 } from '@tabler/icons-react';
+import { uploadMockDocument } from '@/lib/api';
 
 interface UploadedFile {
   name: string;
@@ -27,29 +28,12 @@ export default function UploadDocument() {
     const newFile: UploadedFile = { name: file.name, status: 'indexing' };
     setFiles(prev => [...prev, newFile]);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/upload`,
-        { method: 'POST', body: formData }
-      );
-
-      if (response.ok) {
-        setFiles(prev =>
-          prev.map(f => f.name === file.name ? { ...f, status: 'indexed' } : f)
-        );
-      } else {
-        setFiles(prev =>
-          prev.map(f => f.name === file.name ? { ...f, status: 'error' } : f)
-        );
-      }
-    } catch {
-      setFiles(prev =>
-        prev.map(f => f.name === file.name ? { ...f, status: 'error' } : f)
-      );
-    }
+    // Demo: nothing leaves the browser. This simulates an indexing step so
+    // the UI shows the full upload → indexing → indexed flow.
+    const { status } = await uploadMockDocument(file);
+    setFiles(prev =>
+      prev.map(f => f.name === file.name ? { ...f, status } : f)
+    );
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -86,7 +70,7 @@ export default function UploadDocument() {
       <div className="px-6 py-3.5 bg-white border-b border-gray-200">
         <h1 className="text-[13px] font-medium text-gray-900">Documents</h1>
         <p className="text-[11px] text-gray-500 mt-0.5">
-          Upload financial documents for AI analysis
+          Upload financial documents (demo — files stay in your browser)
         </p>
       </div>
 
@@ -160,14 +144,14 @@ export default function UploadDocument() {
         {/* Info card */}
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <h3 className="text-[12px] font-medium text-gray-900 mb-3">
-            How document analysis works
+            About this demo
           </h3>
           <div className="flex flex-col gap-2">
             {[
-              'Upload a PDF — annual report, earnings statement or any financial document',
-              'JengaVest indexes it using RAG pipeline with ChromaDB and BM25 search',
-              'Ask the AI Analyst questions — it will search your documents for relevant information',
-              'Every answer includes citations with exact page and section references',
+              'This is a front-end demo — uploaded PDFs are listed locally and never sent anywhere.',
+              'The concept: dropped documents would be indexed for retrieval-augmented search.',
+              'The AI Analyst would then answer questions grounded in those documents.',
+              'Replies would include citations pointing back to the source page and section.',
             ].map((step, i) => (
               <div key={i} className="flex items-start gap-3">
                 <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-medium flex items-center justify-center shrink-0 mt-0.5">
