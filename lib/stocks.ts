@@ -87,6 +87,46 @@ export async function searchStocks(query: string): Promise<Stock[]> {
   return all.filter((s) => s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
 }
 
+/** Live quotes for many tickers at once → map keyed by ticker. */
+export async function fetchQuotes(
+  tickers: string[],
+): Promise<Record<string, { price: number; change: number }>> {
+  if (tickers.length === 0) return {};
+  try {
+    const res = await fetch(`${API_URL}/stocks/quotes?symbols=${tickers.join(',')}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const map: Record<string, { price: number; change: number }> = {};
+      for (const q of data.quotes || []) {
+        if (q.price != null) map[q.ticker] = { price: q.price, change: q.change ?? 0 };
+      }
+      return map;
+    }
+  } catch {
+    /* fall back to empty (list keeps indicative prices) */
+  }
+  return {};
+}
+
+/** Search the full symbol universe via the backend (falls back to local filter). */
+export async function searchSymbols(query: string): Promise<Stock[]> {
+  const q = query.trim();
+  if (!q) return fetchStocks();
+  try {
+    const res = await fetch(`${API_URL}/stocks/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const results = (data.results || []) as { ticker: string; name: string; sector: string }[];
+      if (results.length) return results.map((r) => ({ ...r, price: 0, change: 0 }));
+    }
+  } catch {
+    /* fall back to local filter */
+  }
+  const all = await fetchStocks();
+  const lower = q.toLowerCase();
+  return all.filter((s) => s.ticker.toLowerCase().includes(lower) || s.name.toLowerCase().includes(lower));
+}
+
 /** Live quote for one ticker (falls back to the bundled snapshot). */
 export async function fetchQuote(ticker: string): Promise<Stock | undefined> {
   try {
