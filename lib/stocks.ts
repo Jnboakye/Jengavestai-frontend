@@ -133,8 +133,13 @@ export async function searchSymbols(query: string): Promise<Stock[]> {
   return all.filter((s) => s.ticker.toLowerCase().includes(lower) || s.name.toLowerCase().includes(lower));
 }
 
-/** Live quote for one ticker (falls back to the bundled snapshot). */
-export async function fetchQuote(ticker: string): Promise<Stock | undefined> {
+/** Live quote for one ticker. Falls back to the bundled snapshot unless
+ *  `noFallback` is set (used by retry loops that want to keep trying for
+ *  real data through a cold-starting backend). */
+export async function fetchQuote(
+  ticker: string,
+  opts: { noFallback?: boolean } = {},
+): Promise<Stock | undefined> {
   try {
     const res = await fetch(`${API_URL}/stocks/${ticker}/quote`, { cache: 'no-store' });
     if (res.ok) {
@@ -142,9 +147,9 @@ export async function fetchQuote(ticker: string): Promise<Stock | undefined> {
       return { ticker: q.ticker, name: q.name, sector: q.sector, price: q.price, change: q.change };
     }
   } catch {
-    /* fall back */
+    /* fall back below */
   }
-  return getStockSync(ticker);
+  return opts.noFallback ? undefined : getStockSync(ticker);
 }
 
 /** Historical series for a ticker + range (falls back to a synthetic series). */

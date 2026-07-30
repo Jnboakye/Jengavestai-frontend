@@ -21,28 +21,43 @@ import AddHoldingModal from '@/components/AddHoldingModal';
 const changeClass = (c: number) => (c >= 0 ? 'text-green-600' : 'text-red-600');
 const changeBadge = (c: number) => (c >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600');
 const fmtChange = (c: number) => `${c >= 0 ? '+' : ''}${c.toFixed(1)}%`;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function MarketsPage() {
   const { holdings } = usePortfolio();
   const [catalogue, setCatalogue] = useState<Stock[]>([]);
   const [quotes, setQuotes] = useState<Record<string, { price: number; change: number }>>({});
+  const [quotesReady, setQuotesReady] = useState(false); // batch quotes finished (or gave up)
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Stock[] | null>(null); // null = show catalogue
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<Stock | null>(null);
-  const [quote, setQuote] = useState<Stock | null>(null);
+  const [quote, setQuote] = useState<Stock | null>(null); // live quote for the detail panel
   const [range, setRange] = useState<StockRange>('1M');
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [loadingChart, setLoadingChart] = useState(false);
   const [adding, setAdding] = useState<Stock | null>(null);
 
-  // Load catalogue, then live prices for it.
+  // Load catalogue, then live prices — retrying so a cold-starting backend
+  // eventually populates rather than getting stuck on placeholders.
   useEffect(() => {
+    let active = true;
     fetchStocks().then((data) => {
+      if (!active) return;
       setCatalogue(data);
       setSelected((cur) => cur ?? data[0] ?? null);
-      fetchQuotes(data.map((s) => s.ticker)).then(setQuotes);
+      (async () => {
+        const tickers = data.map((s) => s.ticker);
+        for (let i = 0; i < 10 && active; i++) {
+          const m = await fetchQuotes(tickers);
+          if (!active) return;
+          if (Object.keys(m).length) { setQuotes(m); setQuotesReady(true); return; }
+          await sleep(4000); // backend likely cold — wait and retry
+        }
+        if (active) setQuotesReady(true); // gave up; rows show sector instead of a fake price
+      })();
     });
+    return () => { active = false; };
   }, []);
 
   // Debounced full-universe search.
@@ -63,12 +78,22 @@ export default function MarketsPage() {
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [query]);
 
-  // Live quote when the selected stock changes.
+  // Live quote for the selected stock — skeleton until it loads, retried.
   useEffect(() => {
     if (!selected) return;
     let active = true;
-    setQuote(selected);
-    fetchQuote(selected.ticker).then((q) => { if (active && q) setQuote(q); });
+    setQuote(null);
+    (async () => {
+      for (let i = 0; i < 8 && active; i++) {
+        const q = await fetchQuote(selected.ticker, { noFallback: true });
+        if (!active) return;
+        if (q && q.price > 0) { setQuote(q); return; }
+        await sleep(2500);
+      }
+      // Last resort so the panel isn't stuck empty on a truly-offline backend.
+      const q = await fetchQuote(selected.ticker);
+      if (active && q) setQuote(q);
+    })();
     return () => { active = false; };
   }, [selected]);
 
@@ -99,18 +124,9 @@ export default function MarketsPage() {
 
   const owned = useMemo(() => new Set(holdings.map((h) => h.ticker)), [holdings]);
 
-  // Catalogue rows with live prices merged in.
-  const catalogueRows = useMemo(
-    () => catalogue.map((s) => {
-      const live = quotes[s.ticker];
-      return live ? { ...s, price: live.price, change: live.change } : s;
-    }),
-    [catalogue, quotes],
-  );
-
-  const rows = results ?? catalogueRows;
-  const detail = quote ?? selected;
-  const chartData = history.length ? history : (detail ? syntheticSeries(detail.ticker, range) : []);
+  const isSearch = results !== null;
+  const rows = results ?? catalogue;
+  const changeVal = quote?.change ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -138,7 +154,7 @@ export default function MarketsPage() {
 
           <div className="max-h-[70vh] overflow-y-auto">
             {rows.map((s) => {
-              const hasPrice = s.price > 0;
+              const live = quotes[s.ticker];
               return (
                 <button
                   key={s.ticker}
@@ -157,13 +173,19 @@ export default function MarketsPage() {
                     <p className="text-[11px] text-gray-500 truncate">{s.name}</p>
                   </div>
                   <div className="text-right shrink-0 pl-3">
-                    {hasPrice ? (
+                    {live ? (
                       <>
-                        <p className="text-[12px] text-gray-900">{fmtUsd2(s.price)}</p>
-                        <p className={`text-[11px] ${changeClass(s.change)}`}>{fmtChange(s.change)}</p>
+                        <p className="text-[12px] text-gray-900">{fmtUsd2(live.price)}</p>
+                        <p className={`text-[11px] ${changeClass(live.change)}`}>{fmtChange(live.change)}</p>
                       </>
-                    ) : (
+                    ) : isSearch || quotesReady ? (
                       <p className="text-[11px] text-gray-400">{s.sector}</p>
+                    ) : (
+                      // still loading live prices — skeleton, never a fake number
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="h-2.5 w-14 bg-gray-100 rounded animate-pulse" />
+                        <div className="h-2 w-8 bg-gray-100 rounded animate-pulse" />
+                      </div>
                     )}
                   </div>
                 </button>
@@ -177,23 +199,27 @@ export default function MarketsPage() {
 
         {/* Detail */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 h-fit md:sticky md:top-4">
-          {detail ? (
+          {selected ? (
             <>
               <div className="flex items-start justify-between mb-1">
                 <div>
-                  <p className="text-[15px] font-semibold text-gray-900">{detail.ticker}</p>
-                  <p className="text-[11px] text-gray-500">{detail.name}</p>
+                  <p className="text-[15px] font-semibold text-gray-900">{selected.ticker}</p>
+                  <p className="text-[11px] text-gray-500">{selected.name}</p>
                 </div>
-                {detail.price > 0 && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${changeBadge(detail.change)}`}>
-                    {fmtChange(detail.change)}
+                {quote && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${changeBadge(quote.change)}`}>
+                    {fmtChange(quote.change)}
                   </span>
                 )}
               </div>
-              <p className="text-[24px] font-semibold text-gray-900 tracking-tight mb-1">
-                {detail.price > 0 ? fmtUsd2(detail.price) : '—'}
-              </p>
-              <p className="text-[11px] text-gray-400 mb-3">{detail.sector}</p>
+
+              {/* Live price (skeleton until it loads — no placeholder number) */}
+              {quote ? (
+                <p className="text-[24px] font-semibold text-gray-900 tracking-tight mb-1">{fmtUsd2(quote.price)}</p>
+              ) : (
+                <div className="h-7 w-28 bg-gray-100 rounded animate-pulse my-1.5" />
+              )}
+              <p className="text-[11px] text-gray-400 mb-3">{selected.sector}</p>
 
               {/* Timeframe tabs */}
               <div className="flex gap-1 mb-2">
@@ -220,7 +246,7 @@ export default function MarketsPage() {
                   <LineChart
                     width={chartW}
                     height={140}
-                    data={chartData}
+                    data={history.length ? history : syntheticSeries(selected.ticker, range)}
                     margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
                   >
                     <YAxis domain={['dataMin', 'dataMax']} hide />
@@ -232,7 +258,7 @@ export default function MarketsPage() {
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke={detail.change >= 0 ? '#1D9E75' : '#dc2626'}
+                      stroke={changeVal >= 0 ? '#1D9E75' : '#dc2626'}
                       strokeWidth={1.5}
                       dot={false}
                       isAnimationActive={false}
@@ -242,12 +268,12 @@ export default function MarketsPage() {
               </div>
 
               <button
-                onClick={() => setAdding(detail)}
-                disabled={detail.price <= 0}
+                onClick={() => quote && setAdding(quote)}
+                disabled={!quote}
                 className="w-full flex items-center justify-center gap-1.5 bg-[#111827] text-white text-[12px] rounded-lg py-2.5 hover:bg-black transition-colors disabled:opacity-40"
               >
-                {owned.has(detail.ticker) ? <IconCheck size={14} /> : <IconPlus size={14} />}
-                {owned.has(detail.ticker) ? 'Add more' : 'Add to portfolio'}
+                {owned.has(selected.ticker) ? <IconCheck size={14} /> : <IconPlus size={14} />}
+                {owned.has(selected.ticker) ? 'Add more' : 'Add to portfolio'}
               </button>
             </>
           ) : (

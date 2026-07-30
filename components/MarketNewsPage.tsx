@@ -23,16 +23,23 @@ export default function MarketNewsPage() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const tickerKey = holdings.map((h) => h.ticker).join(',');
   useEffect(() => {
     let active = true;
     setLoading(true);
-    fetchNews(holdings.map((h) => h.ticker)).then((data) => {
-      if (!active) return;
-      setArticles(data.length ? data : FALLBACK);
-      setLoading(false);
-    });
+    (async () => {
+      const tickers = tickerKey ? tickerKey.split(',') : [];
+      // Retry: the backend may be cold-starting (Render free tier sleeps).
+      for (let i = 0; i < 6 && active; i++) {
+        const data = await fetchNews(tickers);
+        if (!active) return;
+        if (data.length) { setArticles(data); setLoading(false); return; }
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+      if (active) { setArticles(FALLBACK); setLoading(false); }
+    })();
     return () => { active = false; };
-  }, [holdings]);
+  }, [tickerKey]);
 
   return (
     <div className="min-h-screen bg-gray-50">
