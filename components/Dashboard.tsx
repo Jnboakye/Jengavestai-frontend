@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   IconWallet,
   IconTrendingUp,
@@ -12,6 +12,8 @@ import {
 } from '@tabler/icons-react';
 import { PieChart, Pie, Cell } from 'recharts';
 import { usePortfolio, fmtUsd, fmtUsd2 } from '@/lib/portfolio';
+import { fetchNews } from '@/lib/stocks';
+import { NewsArticle } from '@/types';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -19,20 +21,26 @@ interface DashboardProps {
 
 const SECTOR_COLORS = ['#1D9E75', '#378ADD', '#EF9F27', '#D3D1C7', '#9B7EDE', '#E06C9F', '#54B4C4'];
 
-const news = [
-  { title: 'S&P 500 hits 3-month high on tech earnings', source: 'Reuters', time: '2h ago', sentiment: 'Positive' },
-  { title: 'Fed signals rates elevated through mid-2026', source: 'Bloomberg', time: '4h ago', sentiment: 'Watch' },
-  { title: 'Apple beats Q3 — revenue up 8% YoY', source: 'FT', time: '6h ago', sentiment: 'Positive' },
-];
-
-const sentimentBadge = (s: string) => {
-  if (s === 'Positive') return 'bg-green-50 text-green-600';
-  if (s === 'Negative') return 'bg-red-50 text-red-600';
-  return 'bg-yellow-50 text-yellow-700';
-};
+function timeAgo(unix: number): string {
+  if (!unix) return '';
+  const secs = Math.max(0, Math.floor(Date.now() / 1000 - unix));
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { holdings, totals } = usePortfolio();
+
+  const tickerKey = holdings.map((h) => h.ticker).join(',');
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  useEffect(() => {
+    let active = true;
+    fetchNews(tickerKey ? tickerKey.split(',') : []).then((a) => {
+      if (active) setNews(a.slice(0, 3));
+    });
+    return () => { active = false; };
+  }, [tickerKey]);
 
   const allocation = useMemo(() => {
     const bySector = new Map<string, number>();
@@ -180,15 +188,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <button onClick={() => onNavigate('news')} className="text-[11px] text-gray-400 hover:text-gray-600">View all</button>
             </div>
             <div>
-              {news.map((item, i) => (
-                <div key={i} className={`px-4 py-4 ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}>
-                  <div className="flex items-start gap-2 mb-1">
-                    <p className="text-[12px] text-gray-900 leading-snug flex-1">{item.title}</p>
-                    <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded font-medium ${sentimentBadge(item.sentiment)}`}>{item.sentiment}</span>
-                  </div>
-                  <p className="text-[10px] text-gray-400">{item.source} · {item.time}</p>
-                </div>
-              ))}
+              {news.length === 0 ? (
+                <p className="px-4 py-6 text-[11px] text-gray-400">No recent news yet.</p>
+              ) : (
+                news.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onNavigate('news')}
+                    className={`w-full text-left px-4 py-4 hover:bg-gray-50 transition-colors ${i < news.length - 1 ? 'border-b border-gray-200' : ''}`}
+                  >
+                    <div className="flex items-start gap-2 mb-1">
+                      <p className="text-[12px] text-gray-900 leading-snug flex-1">{item.headline}</p>
+                      <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600">{item.related}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400">{[item.source, timeAgo(item.datetime)].filter(Boolean).join(' · ')}</p>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
