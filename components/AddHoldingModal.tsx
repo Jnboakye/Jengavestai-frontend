@@ -21,7 +21,7 @@ export default function AddHoldingModal({ stock, onClose, onAdded }: Props) {
 
   const submit = () => {
     if (!valid) return;
-    addHolding(stock.ticker, value);
+    addHolding(stock, value);
     onAdded?.();
     onClose();
   };

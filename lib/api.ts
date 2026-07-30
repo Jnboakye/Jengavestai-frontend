@@ -153,3 +153,60 @@ export async function sendChat(
   const mock = await sendMockMessage(rawText, history, opts.ctx);
   return { response: mock.response, citations: [], offline: true };
 }
+
+/**
+ * Streaming version of sendChat. POSTs to /chat/stream and calls `onDelta`
+ * with each text chunk as it arrives. Falls back to the non-streaming path
+ * (which itself falls back to the mock) if streaming is unavailable.
+ */
+export async function streamChat(
+  rawText: string,
+  history: Message[],
+  opts: { preamble?: string; ctx?: ChatContext } = {},
+  onDelta: (chunk: string) => void = () => {},
+): Promise<{ citations: string[]; offline: boolean }> {
+  const message = opts.preamble ? `${opts.preamble}\n\nUser question: ${rawText}` : rawText;
+  let gotAny = false;
+
+  try {
+    const res = await fetch(`${API_URL}/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        conversation_history: history.map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+    if (!res.ok || !res.body) throw new Error('no stream');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let citations: string[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (!payload) continue;
+        let evt: { type?: string; text?: string; citations?: string[]; message?: string };
+        try { evt = JSON.parse(payload); } catch { continue; }
+        if (evt.type === 'delta' && evt.text) { gotAny = true; onDelta(evt.text); }
+        else if (evt.type === 'sources') citations = evt.citations || [];
+        else if (evt.type === 'error' && !gotAny) throw new Error(evt.message || 'stream error');
+      }
+    }
+    if (!gotAny) throw new Error('empty stream');
+    return { citations, offline: false };
+  } catch {
+    const r = await sendChat(rawText, history, opts);
+    if (!gotAny) onDelta(r.response);
+    return { citations: r.citations, offline: r.offline };
+  }
+}

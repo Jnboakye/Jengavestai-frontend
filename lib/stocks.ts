@@ -53,6 +53,12 @@ const CATALOGUE: Stock[] = [
   { ticker: 'NKE', name: 'Nike Inc.', sector: 'Consumer', price: 76.40, change: 0.5 },
   { ticker: 'SPY', name: 'S&P 500 ETF', sector: 'ETF', price: 521.30, change: 1.2 },
   { ticker: 'QQQ', name: 'Invesco QQQ ETF', sector: 'ETF', price: 458.70, change: 1.5 },
+  { ticker: 'BTC', name: 'Bitcoin', sector: 'Crypto', price: 67204, change: -0.8 },
+  { ticker: 'ETH', name: 'Ethereum', sector: 'Crypto', price: 3512, change: 1.4 },
+  { ticker: 'SOL', name: 'Solana', sector: 'Crypto', price: 148.20, change: 2.6 },
+  { ticker: 'XRP', name: 'XRP', sector: 'Crypto', price: 0.61, change: -1.2 },
+  { ticker: 'DOGE', name: 'Dogecoin', sector: 'Crypto', price: 0.12, change: 3.1 },
+  { ticker: 'ADA', name: 'Cardano', sector: 'Crypto', price: 0.45, change: 0.5 },
 ];
 
 const BY_TICKER = new Map(CATALOGUE.map((s) => [s.ticker, s]));

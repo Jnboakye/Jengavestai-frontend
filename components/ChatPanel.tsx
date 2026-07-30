@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { IconRobot, IconSend } from '@tabler/icons-react';
-import { sendChat } from '@/lib/api';
+import { streamChat } from '@/lib/api';
 import { usePortfolio, fmtUsd } from '@/lib/portfolio';
 import { EnrichedHolding, Message } from '@/types';
 
@@ -50,7 +50,7 @@ export default function ChatPanel() {
     if (!text.trim() || loading) return;
 
     const priorHistory = messages.slice(1); // drop the greeting
-    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setMessages((prev) => [...prev, { role: 'user', content: text }, { role: 'assistant', content: '' }]);
     setInput('');
     setLoading(true);
 
@@ -62,12 +62,27 @@ export default function ChatPanel() {
       holdings: holdings.map((h) => ({ ticker: h.ticker, currentValue: h.currentValue, change: h.change })),
     };
 
-    const { response, citations, offline } = await sendChat(text, priorHistory, {
-      preamble: portfolioPreamble(holdings),
-      ctx,
-    });
+    const appendToLast = (chunk: string) =>
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        copy[copy.length - 1] = { ...last, content: last.content + chunk };
+        return copy;
+      });
 
-    setMessages((prev) => [...prev, { role: 'assistant', content: response, citations, offline }]);
+    const { citations, offline } = await streamChat(
+      text,
+      priorHistory,
+      { preamble: portfolioPreamble(holdings), ctx },
+      appendToLast,
+    );
+
+    setMessages((prev) => {
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      copy[copy.length - 1] = { ...last, citations, offline };
+      return copy;
+    });
     setLoading(false);
   };
 
@@ -161,7 +176,15 @@ export default function ChatPanel() {
                     }`}
                     style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
                   >
-                    {msg.content}
+                    {msg.content ? (
+                      msg.content
+                    ) : (
+                      <span className="inline-flex gap-1 py-1 align-middle">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    )}
                   </div>
 
                   {/* Sources */}
@@ -185,22 +208,6 @@ export default function ChatPanel() {
               </div>
             ))}
 
-            {/* Thinking indicator */}
-            {loading && (
-              <div className="flex gap-2 items-start">
-                <div className="w-6 h-6 rounded-full bg-[#111827] flex items-center justify-center shrink-0">
-                  <IconRobot size={12} className="text-white" />
-                </div>
-                <div className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 rounded-tl-sm flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                  </div>
-                  <span className="text-[10px] text-gray-400">Thinking...</span>
-                </div>
-              </div>
-            )}
             <div ref={messagesEndRef} />
           </div>
 

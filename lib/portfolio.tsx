@@ -1,31 +1,41 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { Holding, EnrichedHolding, PortfolioTotals } from '@/types';
-import { getStockSync } from '@/lib/stocks';
+import { Stock, Holding, EnrichedHolding, PortfolioTotals } from '@/types';
+import { getStockSync, fetchQuotes } from '@/lib/stocks';
 
 const STORAGE_KEY = 'jengavest.holdings';
+
+type LiveMap = Record<string, { price: number; change: number }>;
 
 interface PortfolioContextValue {
   ready: boolean;
   holdings: EnrichedHolding[];
   totals: PortfolioTotals;
-  addHolding: (ticker: string, amountUsd: number) => void;
+  addHolding: (stock: Stock, amountUsd: number) => void;
   removeHolding: (ticker: string) => void;
   reset: () => void;
 }
 
 const PortfolioContext = createContext<PortfolioContextValue | null>(null);
 
-function enrich(h: Holding): EnrichedHolding | null {
-  const stock = getStockSync(h.ticker);
-  if (!stock) return null;
+function enrich(h: Holding, live?: { price: number; change: number }): EnrichedHolding {
+  const fallback = getStockSync(h.ticker);
+  const price = live?.price ?? h.price ?? fallback?.price ?? h.purchasePrice;
+  const change = live?.change ?? h.change ?? fallback?.change ?? 0;
+  const name = h.name ?? fallback?.name ?? h.ticker;
+  const sector = h.sector ?? fallback?.sector ?? '—';
+
   const shares = h.amountUsd / h.purchasePrice;
-  const currentValue = shares * stock.price;
-  const prevValue = currentValue / (1 + stock.change / 100);
+  const currentValue = shares * price;
+  const prevValue = currentValue / (1 + change / 100);
+
   return {
-    ...stock,
     ...h,
+    name,
+    sector,
+    price,
+    change,
     shares,
     currentValue,
     dayGainUsd: currentValue - prevValue,
@@ -35,6 +45,7 @@ function enrich(h: Holding): EnrichedHolding | null {
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [raw, setRaw] = useState<Holding[]>([]);
   const [ready, setReady] = useState(false);
+  const [live, setLive] = useState<LiveMap>({});
 
   // Load once on mount (client only).
   useEffect(() => {
@@ -57,25 +68,47 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [raw, ready]);
 
-  const addHolding = useCallback((ticker: string, amountUsd: number) => {
-    const stock = getStockSync(ticker);
-    if (!stock || amountUsd <= 0) return;
+  // Refresh live prices for held tickers whenever the set of holdings changes.
+  const tickersKey = useMemo(() => raw.map((h) => h.ticker).sort().join(','), [raw]);
+  useEffect(() => {
+    if (!ready) return;
+    const tickers = tickersKey ? tickersKey.split(',') : [];
+    if (tickers.length === 0) {
+      setLive({});
+      return;
+    }
+    let active = true;
+    fetchQuotes(tickers).then((m) => { if (active) setLive(m); });
+    return () => { active = false; };
+  }, [tickersKey, ready]);
+
+  const addHolding = useCallback((stock: Stock, amountUsd: number) => {
+    if (!stock || !stock.price || amountUsd <= 0) return;
     setRaw((prev) => {
-      const existing = prev.find((h) => h.ticker === ticker);
+      const existing = prev.find((h) => h.ticker === stock.ticker);
       if (existing) {
         const oldShares = existing.amountUsd / existing.purchasePrice;
         const newShares = amountUsd / stock.price;
         const totalAmount = existing.amountUsd + amountUsd;
         const totalShares = oldShares + newShares;
         return prev.map((h) =>
-          h.ticker === ticker
-            ? { ...h, amountUsd: totalAmount, purchasePrice: totalAmount / totalShares }
+          h.ticker === stock.ticker
+            ? { ...h, amountUsd: totalAmount, purchasePrice: totalAmount / totalShares, price: stock.price, change: stock.change }
             : h,
         );
       }
       return [
         ...prev,
-        { ticker, amountUsd, purchasePrice: stock.price, addedAt: new Date().toISOString() },
+        {
+          ticker: stock.ticker,
+          name: stock.name,
+          sector: stock.sector,
+          amountUsd,
+          purchasePrice: stock.price,
+          price: stock.price,
+          change: stock.change,
+          addedAt: new Date().toISOString(),
+        },
       ];
     });
   }, []);
@@ -87,8 +120,8 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const reset = useCallback(() => setRaw([]), []);
 
   const holdings = useMemo(
-    () => raw.map(enrich).filter((h): h is EnrichedHolding => h !== null),
-    [raw],
+    () => raw.map((h) => enrich(h, live[h.ticker])),
+    [raw, live],
   );
 
   const totals = useMemo<PortfolioTotals>(() => {
