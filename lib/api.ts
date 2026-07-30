@@ -8,6 +8,8 @@
 
 import { Message } from '@/types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export interface ChatContext {
   value: number;
   invested: number;
@@ -99,4 +101,55 @@ export async function uploadMockDocument(_file: File): Promise<{ status: 'indexe
   // Simulate an indexing step; nothing leaves the browser.
   await wait(1200);
   return { status: 'indexed' };
+}
+
+// ── Real backend chat ─────────────────────────────────────────────────────
+
+export interface ChatResult {
+  response: string;
+  citations: string[];
+  offline: boolean;
+}
+
+/**
+ * Send a message to the real JengaVest backend (/chat). A portfolio preamble
+ * is prepended so the analyst discusses only the user's current holdings.
+ * If the backend is unreachable or slow to wake, falls back to the local
+ * portfolio-aware mock so the chat always responds.
+ */
+export async function sendChat(
+  rawText: string,
+  history: Message[],
+  opts: { preamble?: string; ctx?: ChatContext } = {},
+): Promise<ChatResult> {
+  const message = opts.preamble ? `${opts.preamble}\n\nUser question: ${rawText}` : rawText;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 75000);
+  try {
+    const res = await fetch(`${API_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        conversation_history: history.map((m) => ({ role: m.role, content: m.content })),
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        response: data.response ?? '',
+        citations: data.citations ?? [],
+        offline: false,
+      };
+    }
+  } catch {
+    /* backend unreachable or timed out — fall back to mock */
+  }
+  clearTimeout(timer);
+
+  const mock = await sendMockMessage(rawText, history, opts.ctx);
+  return { response: mock.response, citations: [], offline: true };
 }

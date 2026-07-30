@@ -5,17 +5,17 @@ with Next.js and TypeScript. You sign in, search a catalogue of stocks, view a s
 details, and add how much (in USD) you invested. Your positions, allocation, and daily
 performance are calculated live and persist in your browser.
 
-> **Note:** This is a front-end demo. Auth isn't backed by a real server (sign-up
-> intentionally errors — use **Continue as Jeffrey**), and stock data currently comes
-> from a bundled catalogue. All data-fetching goes through one seam (`lib/stocks.ts`)
-> designed to be swapped for a real backend without touching the UI.
+> **Note:** Auth is intentionally a demo (sign-up errors — use **Continue as Jeffrey**).
+> Live market data and the AI analyst come from the JengaVest backend (FastAPI +
+> yfinance + Claude). If the backend isn't running, the app falls back to a bundled
+> catalogue and a local analyst so everything still works offline.
 
 ## How it works
 
 1. **Sign in** — "Sign up with email" shows a demo error; **Continue as Jeffrey** enters the app.
 2. **Empty dashboard** — a new user starts with no holdings and a prompt to add some.
-3. **Markets** — search ~30 stocks by ticker or name, select one to view its price,
-   day change, sector, and a 30-day trend sparkline.
+3. **Markets** — search ~30 stocks by ticker or name, select one to view its live price,
+   day change, sector, and a price chart with **1D / 1W / 1M / 1Y / 5Y** timeframes.
 4. **Add a holding** — enter how much you bought in USD; the app records the cost basis
    and derived share count.
 5. **Live totals** — the dashboard and sidebar show your total value, total invested,
@@ -76,16 +76,30 @@ types/
   index.ts            # shared TypeScript types
 ```
 
-## Wiring a real backend
+## Backend & live data
 
-Everything stock-related flows through `lib/stocks.ts` (`fetchStocks`, `searchStocks`,
-`fetchQuote`). Replace each function body with a `fetch` to your API — for example:
+The app talks to the JengaVest backend (FastAPI) via `NEXT_PUBLIC_API_URL`:
 
-```ts
-export async function fetchStocks(): Promise<Stock[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stocks`);
-  return res.json();
-}
+- `GET /stocks` — tradable catalogue
+- `GET /stocks/{ticker}/quote` — live quote (yfinance)
+- `GET /stocks/{ticker}/history?range=1D|1W|1M|1Y|5Y` — price history (yfinance)
+- `POST /chat` — Claude analyst; the frontend sends your holdings so it discusses only your portfolio
+
+Run it locally:
+
+```bash
+# in the backend folder
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+# set ANTHROPIC_API_KEY (chat) in .env
+uvicorn main:app --reload --port 8000
 ```
 
-The components only call these functions, so no other changes are needed.
+Then point the frontend at it in `.env.local`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Every data call in `lib/stocks.ts` and the chat in `lib/api.ts` falls back to a bundled
+catalogue / local analyst if the backend is unreachable, so the UI never breaks.

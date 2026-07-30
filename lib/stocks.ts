@@ -1,20 +1,27 @@
-// Stock "backend" seam for the JengaVest demo.
+// Stock data seam for JengaVest.
 //
-// Today these functions return a bundled catalogue so the whole app works with
-// no server. They are written to look and behave like async network calls, so
-// wiring them to a real backend later is a one-function change: replace the body
-// of each with a `fetch` to your API and keep the same return types.
+// These call the backend (FastAPI + yfinance) for live prices and history:
+//   GET /stocks                    -> fetchStocks()
+//   GET /stocks/{ticker}/quote     -> fetchQuote()
+//   GET /stocks/{ticker}/history   -> fetchHistory()
 //
-//   export async function fetchStocks(): Promise<Stock[]> {
-//     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stocks`);
-//     return res.json();
-//   }
-//
-// The component layer never imports the catalogue directly — it only calls
-// these functions — so nothing else needs to change.
+// Every call falls back to a bundled catalogue / synthetic series when the
+// backend is unreachable (asleep, offline, or not yet running), so the UI
+// always works. Set NEXT_PUBLIC_API_URL to your backend to get live data.
 
 import { Stock } from '@/types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export type StockRange = '1D' | '1W' | '1M' | '1Y' | '5Y';
+export const RANGES: StockRange[] = ['1D', '1W', '1M', '1Y', '5Y'];
+
+export interface HistoryPoint {
+  t: string;
+  value: number;
+}
+
+// Bundled fallback catalogue (also supplies indicative list prices).
 const CATALOGUE: Stock[] = [
   { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 189.42, change: 1.8 },
   { ticker: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', price: 412.10, change: 2.1 },
@@ -48,55 +55,98 @@ const CATALOGUE: Stock[] = [
   { ticker: 'QQQ', name: 'Invesco QQQ ETF', sector: 'ETF', price: 458.70, change: 1.5 },
 ];
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const BY_TICKER = new Map(CATALOGUE.map((s) => [s.ticker, s]));
 
-/** Full list of tradable stocks. */
+/** Full list of tradable stocks (from backend, with indicative prices). */
 export async function fetchStocks(): Promise<Stock[]> {
-  await wait(150);
+  try {
+    const res = await fetch(`${API_URL}/stocks`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      const list: { ticker: string; name: string; sector: string }[] = data.stocks || [];
+      if (list.length) {
+        return list.map((s) => ({
+          ticker: s.ticker,
+          name: s.name,
+          sector: s.sector,
+          price: BY_TICKER.get(s.ticker)?.price ?? 0,
+          change: BY_TICKER.get(s.ticker)?.change ?? 0,
+        }));
+      }
+    }
+  } catch {
+    /* backend unreachable — fall back */
+  }
   return CATALOGUE;
 }
 
-/** Filter by ticker or company name. */
 export async function searchStocks(query: string): Promise<Stock[]> {
-  await wait(120);
+  const all = await fetchStocks();
   const q = query.trim().toLowerCase();
-  if (!q) return CATALOGUE;
-  return CATALOGUE.filter(
-    (s) => s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q),
-  );
+  if (!q) return all;
+  return all.filter((s) => s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
 }
 
-/** A single quote — the "view this stock" call. */
+/** Live quote for one ticker (falls back to the bundled snapshot). */
 export async function fetchQuote(ticker: string): Promise<Stock | undefined> {
-  await wait(200);
-  return CATALOGUE.find((s) => s.ticker === ticker);
+  try {
+    const res = await fetch(`${API_URL}/stocks/${ticker}/quote`, { cache: 'no-store' });
+    if (res.ok) {
+      const q = await res.json();
+      return { ticker: q.ticker, name: q.name, sector: q.sector, price: q.price, change: q.change };
+    }
+  } catch {
+    /* fall back */
+  }
+  return getStockSync(ticker);
 }
 
-/** Synchronous lookup used to enrich holdings that are already in memory. */
+/** Historical series for a ticker + range (falls back to a synthetic series). */
+export async function fetchHistory(ticker: string, range: StockRange): Promise<HistoryPoint[]> {
+  try {
+    const res = await fetch(`${API_URL}/stocks/${ticker}/history?range=${range}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.points?.length) return data.points as HistoryPoint[];
+    }
+  } catch {
+    /* fall back */
+  }
+  return syntheticSeries(ticker, range);
+}
+
+/** Synchronous lookup used to enrich holdings already held in memory. */
 export function getStockSync(ticker: string): Stock | undefined {
-  return CATALOGUE.find((s) => s.ticker === ticker);
+  return BY_TICKER.get(ticker);
 }
 
-/**
- * Deterministic ~30-point price series for a stock's detail sparkline.
- * Seeded by ticker so the same stock always draws the same shape.
- */
-export function priceSeries(ticker: string, points = 30): { i: number; value: number }[] {
+// ── Synthetic fallback series ────────────────────────────────────────────
+const RANGE_POINTS: Record<StockRange, number> = {
+  '1D': 78,
+  '1W': 65,
+  '1M': 22,
+  '1Y': 52,
+  '5Y': 60,
+};
+
+/** Deterministic price series seeded by ticker, ending at the current price. */
+export function syntheticSeries(ticker: string, range: StockRange): HistoryPoint[] {
   const stock = getStockSync(ticker);
   const base = stock ? stock.price : 100;
-  let seed = 0;
+  const points = RANGE_POINTS[range];
+  let seed = range.length;
   for (let c = 0; c < ticker.length; c++) seed += ticker.charCodeAt(c) * (c + 1);
   const rand = () => {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  const series: { i: number; value: number }[] = [];
-  let v = base * (0.9 + rand() * 0.05);
+  const vol = range === '1D' ? 0.006 : range === '1W' ? 0.012 : range === '1M' ? 0.02 : 0.035;
+  const series: HistoryPoint[] = [];
+  let v = base * (1 - (range === '5Y' ? 0.4 : range === '1Y' ? 0.15 : 0.03) * rand());
   for (let i = 0; i < points; i++) {
-    v = v * (1 + (rand() - 0.48) * 0.03);
-    series.push({ i, value: Math.round(v * 100) / 100 });
+    v = v * (1 + (rand() - 0.48) * vol);
+    series.push({ t: String(i), value: Math.round(v * 100) / 100 });
   }
-  // End the series at the current price so the chart lines up with the quote.
-  series[points - 1] = { i: points - 1, value: base };
+  series[points - 1] = { t: String(points - 1), value: base };
   return series;
 }
