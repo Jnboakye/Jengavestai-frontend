@@ -9,7 +9,7 @@
 // backend is unreachable (asleep, offline, or not yet running), so the UI
 // always works. Set NEXT_PUBLIC_API_URL to your backend to get live data.
 
-import { Stock } from '@/types';
+import { Stock, NewsArticle } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -164,6 +164,21 @@ export async function fetchHistory(ticker: string, range: StockRange): Promise<H
 /** Synchronous lookup used to enrich holdings already held in memory. */
 export function getStockSync(ticker: string): Stock | undefined {
   return BY_TICKER.get(ticker);
+}
+
+/** Portfolio-aware market news (company news for held tickers + general). */
+export async function fetchNews(tickers: string[]): Promise<NewsArticle[]> {
+  try {
+    const qs = tickers.length ? `?symbols=${tickers.join(',')}` : '';
+    const res = await fetch(`${API_URL}/news${qs}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.articles?.length) return data.articles as NewsArticle[];
+    }
+  } catch {
+    /* backend unreachable — caller shows a fallback */
+  }
+  return [];
 }
 
 // ── Synthetic fallback series ────────────────────────────────────────────

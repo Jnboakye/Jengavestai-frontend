@@ -22,6 +22,17 @@ export interface Conversation {
   date: string;
 }
 
+// A real news article from the backend (Finnhub).
+export interface NewsArticle {
+  headline: string;
+  summary: string;
+  source: string;
+  url: string;
+  image: string;
+  datetime: number; // unix seconds
+  related: string;  // ticker or "Market"
+}
+
 // A tradable instrument returned by the stock "backend".
 export interface Stock {
   ticker: string;

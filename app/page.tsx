@@ -67,7 +67,7 @@ export default function Home() {
           {activePage === 'history' && <HistoryPage onNavigate={navigate} />}
           {activePage === 'settings' && <SettingsPage onLogout={logout} />}
         </main>
-        <BottomNav activePage={activePage} onNavigate={navigate} />
+        <BottomNav activePage={activePage} onNavigate={navigate} onLogout={logout} />
       </div>
     </PortfolioProvider>
   );
