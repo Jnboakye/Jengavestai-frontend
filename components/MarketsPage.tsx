@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { IconSearch, IconPlus, IconCheck } from '@tabler/icons-react';
-import { LineChart, Line, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, YAxis, Tooltip } from 'recharts';
 import { Stock } from '@/types';
 import {
   fetchStocks,
@@ -82,6 +82,20 @@ export default function MarketsPage() {
     });
     return () => { active = false; };
   }, [selected, range]);
+
+  // Measure the chart's width ourselves (ResponsiveContainer measures 0 in
+  // some Next/React setups, which leaves the chart blank).
+  const chartWrap = useRef<HTMLDivElement | null>(null);
+  const [chartW, setChartW] = useState(300);
+  useEffect(() => {
+    const el = chartWrap.current;
+    if (!el) return;
+    const update = () => setChartW(Math.max(el.clientWidth, 120));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [selected?.ticker]);
 
   const owned = useMemo(() => new Set(holdings.map((h) => h.ticker)), [holdings]);
 
@@ -197,30 +211,33 @@ export default function MarketsPage() {
               </div>
 
               {/* Chart */}
-              <div style={{ width: '100%', height: 140 }} className="mb-4">
+              <div ref={chartWrap} style={{ width: '100%', height: 140 }} className="mb-4 overflow-hidden">
                 {loadingChart ? (
                   <div className="w-full h-full flex items-center justify-center text-[11px] text-gray-400">
                     Loading {range}…
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={140}>
-                    <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                      <YAxis domain={['dataMin', 'dataMax']} hide />
-                      <Tooltip
-                        formatter={(v) => fmtUsd2(Number(v))}
-                        labelFormatter={() => ''}
-                        contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E5E7EB' }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke={detail.change >= 0 ? '#1D9E75' : '#dc2626'}
-                        strokeWidth={1.5}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChart
+                    width={chartW}
+                    height={140}
+                    data={chartData}
+                    margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  >
+                    <YAxis domain={['dataMin', 'dataMax']} hide />
+                    <Tooltip
+                      formatter={(v) => fmtUsd2(Number(v))}
+                      labelFormatter={() => ''}
+                      contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #E5E7EB' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={detail.change >= 0 ? '#1D9E75' : '#dc2626'}
+                      strokeWidth={1.5}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
                 )}
               </div>
 
