@@ -14,7 +14,7 @@ import {
   IconLogout,
 } from '@tabler/icons-react';
 import { usePortfolio, fmtUsd } from '@/lib/portfolio';
-import { clearUser } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-provider';
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
@@ -34,9 +34,10 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { totals } = usePortfolio();
+  const { signOut } = useAuth();
 
-  const logout = () => {
-    clearUser();
+  const logout = async () => {
+    await signOut();
     router.push('/login');
   };
 

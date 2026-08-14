@@ -3,19 +3,15 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LoginScreen from '@/components/LoginScreen';
-import { getUser, setUser } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-provider';
 
 export default function Page() {
   const router = useRouter();
+  const { ready, userId } = useAuth();
 
   useEffect(() => {
-    if (getUser()) router.replace('/dashboard');
-  }, [router]);
+    if (ready && userId) router.replace('/dashboard');
+  }, [ready, userId, router]);
 
-  const login = () => {
-    setUser('Jeffrey');
-    router.push('/dashboard');
-  };
-
-  return <LoginScreen onContinue={login} />;
+  return <LoginScreen />;
 }

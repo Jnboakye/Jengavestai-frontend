@@ -1,26 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortfolioProvider } from '@/lib/portfolio';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
-import { getUser } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-provider';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const { ready, userId } = useAuth();
 
-  // Client-side auth guard (demo: localStorage). Redirect out if not signed in.
   useEffect(() => {
-    if (!getUser()) {
-      router.replace('/login');
-      return;
-    }
-    setReady(true);
-  }, [router]);
+    if (ready && !userId) router.replace('/login');
+  }, [ready, userId, router]);
 
-  if (!ready) return null;
+  if (!ready || !userId) return null;
 
   return (
     <PortfolioProvider>

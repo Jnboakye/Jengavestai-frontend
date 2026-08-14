@@ -22,9 +22,12 @@ const GREETING: ChatMsg = {
     'Hi! I am your JengaVest analyst. I focus on the stocks in your portfolio — ask me how your holdings are doing, what is driving them, or where your risks are.',
 };
 
+const DOC_NOTE =
+  'The user may also upload financial documents (annual reports, filings, earnings). When they ask about a document, filing, or company report, use the search_documents tool and answer from the retrieved text with citations — even if that company is not one of their holdings.';
+
 function portfolioPreamble(holdings: EnrichedHolding[]): string {
   if (holdings.length === 0) {
-    return 'The user has no holdings yet. If they ask about their portfolio, tell them it is empty and suggest adding stocks from the Markets page. Only discuss stocks that are in their portfolio.';
+    return `The user has no holdings yet. If they ask about their portfolio, tell them it is empty and suggest adding stocks from the Markets page. ${DOC_NOTE}`;
   }
   const lines = holdings
     .map(
@@ -32,7 +35,7 @@ function portfolioPreamble(holdings: EnrichedHolding[]): string {
         `${h.ticker} (${h.name}): invested ${fmtUsd(h.amountUsd)}, current value ${fmtUsd(h.currentValue)}, day change ${h.change >= 0 ? '+' : ''}${h.change.toFixed(1)}%`,
     )
     .join('; ');
-  return `You are JengaVest AI. Analyze ONLY the user's current portfolio holdings and stay strictly within them. Their holdings are: ${lines}. If the user asks about any stock or asset that is not in this list, tell them it is not in their portfolio and offer to analyze only what they hold. Prefer live data for these tickers.`;
+  return `You are JengaVest AI. The user's current portfolio holdings are: ${lines}. For portfolio questions, focus on these holdings and prefer live data for them. ${DOC_NOTE} For unrelated general stock questions, gently steer them back to their portfolio or their uploaded documents.`;
 }
 
 export default function ChatPanel() {

@@ -103,6 +103,41 @@ export async function uploadMockDocument(_file: File): Promise<{ status: 'indexe
   return { status: 'indexed' };
 }
 
+// ── Real document RAG ─────────────────────────────────────────────────────
+
+export interface UploadResult {
+  success: boolean;
+  filename: string;
+  chunks_indexed: number;
+  message: string;
+}
+
+/** Upload a PDF to the backend, which indexes it into the RAG pipeline. */
+export async function uploadDocument(file: File): Promise<UploadResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Upload failed (${res.status})`);
+  }
+  return res.json();
+}
+
+/** List the PDFs currently indexed on the backend. */
+export async function fetchDocuments(): Promise<string[]> {
+  try {
+    const res = await fetch(`${API_URL}/documents`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      return data.documents || [];
+    }
+  } catch {
+    /* backend unreachable */
+  }
+  return [];
+}
+
 // ── Real backend chat ─────────────────────────────────────────────────────
 
 export interface ChatResult {

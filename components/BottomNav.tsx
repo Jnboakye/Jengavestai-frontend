@@ -15,7 +15,7 @@ import {
   IconSettings,
   IconLogout,
 } from '@tabler/icons-react';
-import { clearUser } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-provider';
 
 const tabs = [
   { href: '/dashboard', label: 'Home', icon: IconLayoutDashboard },
@@ -36,13 +36,14 @@ const MORE_HREFS = new Set(moreItems.map((m) => m.href));
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const moreActive = MORE_HREFS.has(pathname);
 
-  const logout = () => {
-    clearUser();
+  const logout = async () => {
     setMenuOpen(false);
+    await signOut();
     router.push('/login');
   };
 

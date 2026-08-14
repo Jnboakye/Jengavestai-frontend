@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { Stock, Holding, EnrichedHolding, PortfolioTotals } from '@/types';
 import { getStockSync, fetchQuotes } from '@/lib/stocks';
+import { authedFetch } from '@/lib/session';
+import { useAuth } from '@/lib/auth-provider';
 
 const STORAGE_KEY = 'jengavest.holdings';
 
@@ -30,53 +32,68 @@ function enrich(h: Holding, live?: { price: number; change: number }): EnrichedH
   const currentValue = shares * price;
   const prevValue = currentValue / (1 + change / 100);
 
-  return {
-    ...h,
-    name,
-    sector,
-    price,
-    change,
-    shares,
-    currentValue,
-    dayGainUsd: currentValue - prevValue,
-  };
+  return { ...h, name, sector, price, change, shares, currentValue, dayGainUsd: currentValue - prevValue };
 }
 
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
+  const { mode, userId } = useAuth();
+  const useDb = mode === 'account' && !!userId && userId !== 'guest';
+
   const [raw, setRaw] = useState<Holding[]>([]);
   const [ready, setReady] = useState(false);
   const [live, setLive] = useState<LiveMap>({});
 
-  // Load once on mount (client only).
+  // Load holdings from the backend (signed in) or localStorage (guest).
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setRaw(JSON.parse(stored));
-    } catch {
-      /* ignore corrupt storage */
-    }
-    setReady(true);
-  }, []);
+    let active = true;
+    setReady(false);
+    (async () => {
+      if (useDb) {
+        try {
+          const res = await authedFetch('/portfolio');
+          if (res.ok) {
+            const data = await res.json();
+            const rows: Holding[] = (data.holdings || []).map((h: Holding) => ({
+              ...h,
+              price: h.purchasePrice,
+              change: 0,
+            }));
+            if (active) setRaw(rows);
+          } else if (active) {
+            setRaw([]);
+          }
+        } catch {
+          if (active) setRaw([]);
+        }
+      } else {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          setRaw(stored ? JSON.parse(stored) : []);
+        } catch {
+          setRaw([]);
+        }
+      }
+      if (active) setReady(true);
+    })();
+    return () => { active = false; };
+  }, [useDb, userId]);
 
-  // Persist on change (after the initial load).
+  // Persist to localStorage in guest mode (DB writes are per-operation).
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || useDb) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
     } catch {
-      /* ignore quota errors */
+      /* ignore */
     }
-  }, [raw, ready]);
+  }, [raw, ready, useDb]);
 
-  // Refresh live prices for held tickers whenever the set of holdings changes.
+  // Live prices for held tickers.
   const tickersKey = useMemo(() => raw.map((h) => h.ticker).sort().join(','), [raw]);
   useEffect(() => {
     if (!ready) return;
     const tickers = tickersKey ? tickersKey.split(',') : [];
-    if (tickers.length === 0) {
-      setLive({});
-      return;
-    }
+    if (tickers.length === 0) { setLive({}); return; }
     let active = true;
     fetchQuotes(tickers).then((m) => { if (active) setLive(m); });
     return () => { active = false; };
@@ -84,45 +101,60 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
 
   const addHolding = useCallback((stock: Stock, amountUsd: number) => {
     if (!stock || !stock.price || amountUsd <= 0) return;
-    setRaw((prev) => {
-      const existing = prev.find((h) => h.ticker === stock.ticker);
-      if (existing) {
-        const oldShares = existing.amountUsd / existing.purchasePrice;
-        const newShares = amountUsd / stock.price;
-        const totalAmount = existing.amountUsd + amountUsd;
-        const totalShares = oldShares + newShares;
-        return prev.map((h) =>
-          h.ticker === stock.ticker
-            ? { ...h, amountUsd: totalAmount, purchasePrice: totalAmount / totalShares, price: stock.price, change: stock.change }
-            : h,
-        );
-      }
-      return [
-        ...prev,
-        {
+
+    const existing = raw.find((h) => h.ticker === stock.ticker);
+    let next: Holding;
+    if (existing) {
+      const oldShares = existing.amountUsd / existing.purchasePrice;
+      const newShares = amountUsd / stock.price;
+      const totalAmount = existing.amountUsd + amountUsd;
+      const totalShares = oldShares + newShares;
+      next = { ...existing, amountUsd: totalAmount, purchasePrice: totalAmount / totalShares, price: stock.price, change: stock.change };
+    } else {
+      next = {
+        ticker: stock.ticker,
+        name: stock.name,
+        sector: stock.sector,
+        amountUsd,
+        purchasePrice: stock.price,
+        price: stock.price,
+        change: stock.change,
+        addedAt: new Date().toISOString(),
+      };
+    }
+
+    setRaw((prev) =>
+      prev.some((h) => h.ticker === stock.ticker)
+        ? prev.map((h) => (h.ticker === stock.ticker ? next : h))
+        : [...prev, next],
+    );
+
+    if (useDb) {
+      authedFetch('/portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           ticker: stock.ticker,
           name: stock.name,
           sector: stock.sector,
-          amountUsd,
-          purchasePrice: stock.price,
+          amount_usd: amountUsd,
           price: stock.price,
-          change: stock.change,
-          addedAt: new Date().toISOString(),
-        },
-      ];
-    });
-  }, []);
+        }),
+      }).catch(() => {});
+    }
+  }, [raw, useDb]);
 
   const removeHolding = useCallback((ticker: string) => {
     setRaw((prev) => prev.filter((h) => h.ticker !== ticker));
-  }, []);
+    if (useDb) authedFetch(`/portfolio/${ticker}`, { method: 'DELETE' }).catch(() => {});
+  }, [useDb]);
 
-  const reset = useCallback(() => setRaw([]), []);
+  const reset = useCallback(() => {
+    setRaw([]);
+    if (useDb) authedFetch('/portfolio', { method: 'DELETE' }).catch(() => {});
+  }, [useDb]);
 
-  const holdings = useMemo(
-    () => raw.map((h) => enrich(h, live[h.ticker])),
-    [raw, live],
-  );
+  const holdings = useMemo(() => raw.map((h) => enrich(h, live[h.ticker])), [raw, live]);
 
   const totals = useMemo<PortfolioTotals>(() => {
     const invested = holdings.reduce((s, h) => s + h.amountUsd, 0);
@@ -133,14 +165,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     return { invested, value, dayGainUsd, dayGainPct };
   }, [holdings]);
 
-  const val: PortfolioContextValue = {
-    ready,
-    holdings,
-    totals,
-    addHolding,
-    removeHolding,
-    reset,
-  };
+  const val: PortfolioContextValue = { ready, holdings, totals, addHolding, removeHolding, reset };
 
   return <PortfolioContext.Provider value={val}>{children}</PortfolioContext.Provider>;
 }
@@ -151,7 +176,6 @@ export function usePortfolio() {
   return ctx;
 }
 
-// Small shared formatting helpers.
 export const fmtUsd = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
