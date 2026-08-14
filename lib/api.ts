@@ -7,8 +7,71 @@
 // up a backend later.
 
 import { Message } from '@/types';
+import { authedFetch } from '@/lib/session';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// ── Chat history (backend-owned, per user) ────────────────────────────────
+
+export interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+export interface StoredMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  citations?: string[] | null;
+  created_at?: string;
+}
+
+export async function listConversations(): Promise<Conversation[]> {
+  try {
+    const r = await authedFetch('/conversations');
+    if (r.ok) return (await r.json()).conversations || [];
+  } catch { /* ignore */ }
+  return [];
+}
+
+export async function createConversation(title: string): Promise<Conversation | null> {
+  try {
+    const r = await authedFetch('/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    if (r.ok) return await r.json();
+  } catch { /* ignore */ }
+  return null;
+}
+
+export async function listMessages(conversationId: string): Promise<StoredMessage[]> {
+  try {
+    const r = await authedFetch(`/conversations/${conversationId}/messages`);
+    if (r.ok) return (await r.json()).messages || [];
+  } catch { /* ignore */ }
+  return [];
+}
+
+export async function saveMessage(
+  conversationId: string,
+  msg: { role: string; content: string; citations?: string[] },
+): Promise<void> {
+  try {
+    await authedFetch(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(msg),
+    });
+  } catch { /* ignore */ }
+}
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+  try {
+    await authedFetch(`/conversations/${conversationId}`, { method: 'DELETE' });
+  } catch { /* ignore */ }
+}
 
 export interface ChatContext {
   value: number;

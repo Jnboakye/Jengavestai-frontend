@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { IconRobot, IconSend } from '@tabler/icons-react';
-import { streamChat } from '@/lib/api';
+import { streamChat, createConversation, saveMessage, listMessages } from '@/lib/api';
 import { usePortfolio, fmtUsd } from '@/lib/portfolio';
+import { useAuth } from '@/lib/auth-provider';
 import { EnrichedHolding, Message } from '@/types';
 
 type ChatMsg = Message & { citations?: string[]; offline?: boolean };
@@ -40,14 +41,31 @@ function portfolioPreamble(holdings: EnrichedHolding[]): string {
 
 export default function ChatPanel() {
   const { holdings, totals } = usePortfolio();
+  const { mode, userId } = useAuth();
+  const accountMode = mode === 'account' && !!userId && userId !== 'guest';
+
   const [messages, setMessages] = useState<ChatMsg[]>([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load an existing conversation from ?c=<id> (signed-in users only).
+  useEffect(() => {
+    if (!accountMode) return;
+    const cid = new URLSearchParams(window.location.search).get('c');
+    if (!cid) return;
+    setConversationId(cid);
+    listMessages(cid).then((rows) => {
+      if (rows.length) {
+        setMessages(rows.map((m) => ({ role: m.role, content: m.content, citations: m.citations ?? undefined })));
+      }
+    });
+  }, [accountMode]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -57,6 +75,18 @@ export default function ChatPanel() {
     setInput('');
     setLoading(true);
 
+    // Ensure a saved conversation exists (signed-in users).
+    let convId = conversationId;
+    if (accountMode && !convId) {
+      const conv = await createConversation(text.slice(0, 60));
+      if (conv) {
+        convId = conv.id;
+        setConversationId(conv.id);
+        window.history.replaceState(null, '', `/ai-agent?c=${conv.id}`);
+      }
+    }
+    if (accountMode && convId) saveMessage(convId, { role: 'user', content: text });
+
     const ctx = {
       value: totals.value,
       invested: totals.invested,
@@ -65,13 +95,16 @@ export default function ChatPanel() {
       holdings: holdings.map((h) => ({ ticker: h.ticker, currentValue: h.currentValue, change: h.change })),
     };
 
-    const appendToLast = (chunk: string) =>
+    let assistantText = '';
+    const appendToLast = (chunk: string) => {
+      assistantText += chunk;
       setMessages((prev) => {
         const copy = [...prev];
         const last = copy[copy.length - 1];
         copy[copy.length - 1] = { ...last, content: last.content + chunk };
         return copy;
       });
+    };
 
     const { citations, offline } = await streamChat(
       text,
@@ -86,10 +119,15 @@ export default function ChatPanel() {
       copy[copy.length - 1] = { ...last, citations, offline };
       return copy;
     });
+    if (accountMode && convId) saveMessage(convId, { role: 'assistant', content: assistantText, citations });
     setLoading(false);
   };
 
-  const clearChat = () => setMessages([GREETING]);
+  const clearChat = () => {
+    setMessages([GREETING]);
+    setConversationId(null);
+    if (accountMode) window.history.replaceState(null, '', '/ai-agent');
+  };
 
   return (
     <div className="flex flex-col bg-gray-50 overflow-x-hidden" style={{ height: '100dvh' }}>
