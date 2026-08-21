@@ -9,7 +9,6 @@ import {
   IconChartPie,
   IconBuildingBank,
   IconCurrencyBitcoin,
-  IconBrandGoogle,
   IconMail,
 } from '@tabler/icons-react';
 import { useAuth } from '@/lib/auth-provider';
@@ -24,7 +23,7 @@ const tickers = [
 ];
 
 export default function LoginScreen() {
-  const { mode, signInWithGoogle, signInWithMagicLink, continueAsGuest } = useAuth();
+  const { mode, signInWithMagicLink, continueAsGuest } = useAuth();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -113,20 +112,6 @@ export default function LoginScreen() {
               </div>
             ) : (
               <div className="w-full flex flex-col gap-3">
-                <button
-                  onClick={() => signInWithGoogle()}
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-800 text-[13px] font-medium rounded-lg py-2.5 hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                >
-                  <IconBrandGoogle size={16} />
-                  Continue with Google
-                </button>
-
-                <div className="flex items-center gap-3 my-1">
-                  <span className="h-px bg-gray-200 flex-1" />
-                  <span className="text-[11px] text-gray-400">or</span>
-                  <span className="h-px bg-gray-200 flex-1" />
-                </div>
-
                 <form onSubmit={sendMagicLink} className="flex flex-col gap-2.5">
                   <input
                     type="email"

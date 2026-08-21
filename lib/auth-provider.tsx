@@ -12,7 +12,6 @@ interface AuthContextValue {
   email: string | null;
   displayName: string;
   mode: 'account' | 'guest';
-  signInWithGoogle: () => void;
   signInWithMagicLink: (email: string) => Promise<{ error?: string }>;
   continueAsGuest: () => void;
   signOut: () => Promise<void>;
@@ -67,10 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, []);
 
-  const signInWithGoogle = useCallback(() => {
-    window.location.href = `${API_URL}/auth/login/google`;
-  }, []);
-
   const signInWithMagicLink = useCallback(async (addr: string) => {
     try {
       const res = await fetch(`${API_URL}/auth/magic-link`, {
@@ -111,7 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email,
     displayName,
     mode,
-    signInWithGoogle,
     signInWithMagicLink,
     continueAsGuest,
     signOut,
